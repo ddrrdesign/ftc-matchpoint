@@ -1,0 +1,11 @@
+# Copy to .env.local (never commit real keys).
+# Register: https://ftc-events.firstinspires.org/services/API/register
+#
+FTC_API_USERNAME=your_username_here
+FTC_API_KEY=your_authorization_key_uuid_here
+
+# Calendar year used in API paths (e.g. 2026 for the 2025–2026 FTC season)
+FTC_SEASON_YEAR=2026
+
+# FTC Scout REST (https://ftcscout.org/api/rest) - season year, e.g. 2025 for Decode
+FTC_SCOUT_SEASON=2025
