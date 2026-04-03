@@ -163,7 +163,7 @@ export default async function PredictorPage({ searchParams }: Props) {
                 name="r"
                 type="text"
                 defaultValue={sp.r ?? ""}
-                placeholder="27772, 19458"
+                placeholder="11111, 22222"
                 className="mt-1 min-h-12 w-full rounded-xl border border-red-400/25 bg-red-500/[0.07] px-4 py-3 font-mono text-sm text-white placeholder:text-white/30 outline-none focus:border-red-400/45"
               />
             </div>
@@ -176,7 +176,7 @@ export default async function PredictorPage({ searchParams }: Props) {
                 name="b"
                 type="text"
                 defaultValue={sp.b ?? ""}
-                placeholder="14522, 12345"
+                placeholder="33333, 44444"
                 className="mt-1 min-h-12 w-full rounded-xl border border-blue-400/25 bg-blue-500/[0.07] px-4 py-3 font-mono text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-400/45"
               />
             </div>
@@ -365,7 +365,7 @@ export default async function PredictorPage({ searchParams }: Props) {
             <p>
               Enter four team numbers above, or open an{" "}
               <Link
-                href="/predictor?r=27772%2C19458&b=14522%2C12345"
+                href="/predictor?r=11111%2C22222&b=33333%2C44444"
                 className="text-violet-300 hover:underline"
               >
                 example matchup
