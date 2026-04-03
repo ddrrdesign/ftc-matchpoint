@@ -144,7 +144,7 @@ export default function Home() {
               </p>
             </div>
             <Link
-              href="/events/CA-2026"
+              href="/events/CA-CAS"
               className="text-sm text-violet-300/90 hover:text-violet-200"
             >
               Event schedule →

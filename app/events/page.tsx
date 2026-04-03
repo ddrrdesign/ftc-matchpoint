@@ -97,7 +97,7 @@ export default async function EventsPage({ searchParams }: Props) {
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-white/50">
             {showApi
-              ? `Season ${season} from FIRST FTC Events API. Search by name, code, or location.`
+              ? "Live listings from FIRST FTC Events API. Search by name, code, or location."
               : "Search sample listings below by name, code, or location."}
           </p>
         </div>

@@ -59,7 +59,6 @@ export default async function PredictorPage({ searchParams }: Props) {
   const sp = await searchParams;
   const red = parsePair(sp.r);
   const blue = parsePair(sp.b);
-  /** Resolves to a year Scout actually accepts (e.g. 2025 while 2026 returns Invalid season). */
   const season = await getEffectiveScoutSeason();
   const predictorEventCode = getFtcScoutPredictorEventCode();
 
@@ -158,18 +157,20 @@ export default async function PredictorPage({ searchParams }: Props) {
             Compare alliances
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-white/50">
-            Two red, two blue. Alliance Total NP sums from FTC Scout (season{" "}
-            {season}
+            Two red, two blue. Alliance Total NP sums from FTC Scout
             {predictorEventCode ? (
               <>
-                ; matchup uses event{" "}
+                {" "}
+                (event{" "}
                 <span className="font-mono text-white/55">
                   {predictorEventCode}
                 </span>{" "}
-                when the team has a row there, otherwise season composite
+                when listed for a team; otherwise full-season composite)
               </>
-            ) : null}
-            ). Not official — for scouting talks.
+            ) : (
+              " (full-season composite)"
+            )}
+            . Not official — for scouting talks.
           </p>
         </div>
 
@@ -282,7 +283,7 @@ export default async function PredictorPage({ searchParams }: Props) {
                       Why (alliance sums
                       {predictorEventCode
                         ? `, FTC Scout · ${predictorEventCode} OPR where available`
-                        : ", Scout season composite"}
+                        : ", Scout composite totals"}
                       )
                     </p>
                     <ul className="mt-3 space-y-2 text-sm text-white/70">

@@ -124,15 +124,7 @@ export function EventDetailApi({
               <span className="text-white/40"> · {event.divisionCode}</span>
             ) : null}
           </p>
-          <p className="mt-1 text-white/50">
-            {location}
-            {event.dateStart
-              ? ` · ${new Date(event.dateStart).toLocaleDateString()}`
-              : ""}
-            {event.dateEnd
-              ? ` – ${new Date(event.dateEnd).toLocaleDateString()}`
-              : ""}
-          </p>
+          <p className="mt-1 text-white/50">{location}</p>
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
             <a
               href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}

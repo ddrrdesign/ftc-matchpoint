@@ -9,21 +9,21 @@ import type {
 } from "./types";
 
 export const MOCK_SEASON: Season = {
-  id: "ftc-2025-2026",
+  id: "ftc-decode",
   name: "CENTERSTAGE",
-  year: 2026,
+  year: 0,
 };
 
 export const MOCK_EVENTS: Event[] = [
   {
-    id: "evt-ca-2026",
-    code: "CA-2026",
-    name: "Central Asia Championship 2026",
+    id: "evt-ca-cas",
+    code: "CA-CAS",
+    name: "Central Asia Championship",
     location: "Almaty, KZ",
     status: "live",
     seasonId: MOCK_SEASON.id,
-    startDate: "2026-03-14",
-    endDate: "2026-03-16",
+    startDate: "",
+    endDate: "",
     teamCount: 48,
     matchCount: 96,
     predictionCount: 24,
@@ -36,7 +36,7 @@ export const MOCK_EVENTS: Event[] = [
     location: "Houston, TX",
     status: "upcoming",
     seasonId: MOCK_SEASON.id,
-    startDate: "2026-04-18",
+    startDate: "",
     teamCount: 192,
     matchCount: 420,
     predictionCount: 0,
@@ -49,8 +49,8 @@ export const MOCK_EVENTS: Event[] = [
     location: "Sample region",
     status: "completed",
     seasonId: MOCK_SEASON.id,
-    startDate: "2026-01-10",
-    endDate: "2026-01-12",
+    startDate: "",
+    endDate: "",
     teamCount: 32,
     matchCount: 64,
     predictionCount: 64,
@@ -83,7 +83,7 @@ export function getMatchBySlug(slug: string): Match | undefined {
 export const MOCK_STATS_CA: TeamEventStats[] = [
   {
     teamId: "t27772",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     avgTotal: 210,
     avgAuto: 58,
     avgTeleop: 112,
@@ -93,7 +93,7 @@ export const MOCK_STATS_CA: TeamEventStats[] = [
   },
   {
     teamId: "t19458",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     avgTotal: 180,
     avgAuto: 44,
     avgTeleop: 98,
@@ -103,7 +103,7 @@ export const MOCK_STATS_CA: TeamEventStats[] = [
   },
   {
     teamId: "t14522",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     avgTotal: 190,
     avgAuto: 48,
     avgTeleop: 105,
@@ -113,7 +113,7 @@ export const MOCK_STATS_CA: TeamEventStats[] = [
   },
   {
     teamId: "t12345",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     avgTotal: 160,
     avgAuto: 40,
     avgTeleop: 90,
@@ -134,7 +134,7 @@ export const MOCK_MATCHES_HOME: Match[] = [
   {
     id: "m-qf38",
     slug: "QF-38",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     label: "QF 38",
     phase: "playoff",
     red: { color: "red", teamNumbers: [27772, 19458] },
@@ -146,7 +146,7 @@ export const MOCK_MATCHES_HOME: Match[] = [
   {
     id: "m-qf39",
     slug: "QF-39",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     label: "QF 39",
     phase: "playoff",
     red: { color: "red", teamNumbers: [10333, 24560] },
@@ -158,7 +158,7 @@ export const MOCK_MATCHES_HOME: Match[] = [
   {
     id: "m-qf40",
     slug: "QF-40",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     label: "QF 40",
     phase: "playoff",
     red: { color: "red", teamNumbers: [17777, 18888] },
@@ -170,7 +170,7 @@ export const MOCK_MATCHES_HOME: Match[] = [
   {
     id: "m-qf41",
     slug: "QF-41",
-    eventId: "evt-ca-2026",
+    eventId: "evt-ca-cas",
     label: "QF 41",
     phase: "playoff",
     red: { color: "red", teamNumbers: [54321, 27772] },
@@ -184,12 +184,12 @@ export const MOCK_MATCHES_HOME: Match[] = [
 export const MOCK_UPCOMING_MATCH: Match = {
   id: "m-qf42",
   slug: "QF-42",
-  eventId: "evt-ca-2026",
+  eventId: "evt-ca-cas",
   label: "Qualification 42",
   phase: "qualification",
   red: { color: "red", teamNumbers: [11111, 22222] },
   blue: { color: "blue", teamNumbers: [33333, 44444] },
-  scheduledTime: "2026-03-15T14:30:00",
+  scheduledTime: undefined,
 };
 
 export const MOCK_PREDICTION_SHOWCASE: MatchPrediction = {

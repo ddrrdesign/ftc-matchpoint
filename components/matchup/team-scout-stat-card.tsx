@@ -109,19 +109,18 @@ export function TeamScoutStatCard({ team, stats, bestOprNp, error }: Props) {
                 OPR/avg slice for event{" "}
                 <span className="font-mono text-white/45">
                   {stats.statsScopeEventCode}
-                </span>{" "}
-                (season {stats.season}). Season ranks not shown.
+                </span>
+                . Season-wide ranks not shown for this slice.
               </>
             ) : (
               <>
-                Ranks vs ~{pool?.toLocaleString()} teams on FTC Scout for season{" "}
-                {stats.season}.
+                Ranks vs ~{pool?.toLocaleString()} teams on FTC Scout (composite).
               </>
             )}
           </p>
         </>
       ) : (
-        <p className="mt-4 text-sm text-white/45">No quick stats for season.</p>
+        <p className="mt-4 text-sm text-white/45">No quick stats from Scout.</p>
       )}
     </GlassCard>
   );

@@ -69,7 +69,7 @@ export default async function TeamDetailPage({ params }: Props) {
               </p>
               <GlassCard className="mt-8 p-5 text-sm text-white/60">
                 Registration data from FTC Events API. No FTC Scout row for this
-                number in season {season}, or Scout returned an error.
+                number, or Scout returned an error.
               </GlassCard>
               <Link
                 href={`/events?q=${n}`}

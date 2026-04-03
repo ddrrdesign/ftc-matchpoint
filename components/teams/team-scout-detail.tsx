@@ -5,7 +5,6 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { TeamScoutStatCard } from "@/components/matchup/team-scout-stat-card";
 import type { QuickStats, ScoutTeam, TeamEventParticipation } from "@/lib/ftc-scout/types";
 import { maxOprTotalNp } from "@/lib/ftc-scout/queries";
-import { getFtcScoutSeason } from "@/lib/ftc-scout/env";
 
 type Props = {
   team: ScoutTeam;
@@ -14,7 +13,6 @@ type Props = {
 };
 
 export function TeamScoutDetail({ team, stats, events }: Props) {
-  const season = getFtcScoutSeason();
   const bestOpr = maxOprTotalNp(events);
 
   const ranked = events
@@ -46,7 +44,6 @@ export function TeamScoutDetail({ team, stats, events }: Props) {
           <h1 className="mt-2 text-3xl font-semibold">{team.name}</h1>
           <p className="mt-2 text-white/55">
             {[team.city, team.state, team.country].filter(Boolean).join(", ")}
-            {team.rookieYear ? ` · Rookie ${team.rookieYear}` : ""}
           </p>
         </div>
 
@@ -59,7 +56,7 @@ export function TeamScoutDetail({ team, stats, events }: Props) {
         </div>
 
         <section className="mt-14">
-          <h2 className="text-xl font-semibold">Events this season ({season})</h2>
+          <h2 className="text-xl font-semibold">Events</h2>
           <p className="mt-1 text-sm text-white/45">
             From FTC Scout - use this to see how a team trended across
             qualifiers.

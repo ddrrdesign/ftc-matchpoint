@@ -3,7 +3,6 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { fetchTeamsSearch } from "@/lib/ftc-scout/queries";
-import { getFtcScoutSeason } from "@/lib/ftc-scout/env";
 
 type Props = {
   searchParams: Promise<{ q?: string | string[] }>;
@@ -13,7 +12,6 @@ export default async function TeamsSearchPage({ searchParams }: Props) {
   const sp = await searchParams;
   const raw = sp.q;
   const q = typeof raw === "string" ? raw.trim() : "";
-  const season = getFtcScoutSeason();
 
   const searchResult = q ? await fetchTeamsSearch(q) : null;
   const teams = searchResult?.ok ? searchResult.data : [];
@@ -42,8 +40,8 @@ export default async function TeamsSearchPage({ searchParams }: Props) {
               rel="noreferrer"
             >
               FTC Scout
-            </a>{" "}
-            (season {season} on team pages).
+            </a>
+            .
           </p>
         </div>
 
@@ -101,11 +99,6 @@ export default async function TeamsSearchPage({ searchParams }: Props) {
                           <span className="font-mono text-lg font-semibold text-violet-200/95">
                             {t.number}
                           </span>
-                          {t.rookieYear != null && (
-                            <span className="text-xs text-white/35">
-                              Rookie {t.rookieYear}
-                            </span>
-                          )}
                         </div>
                         <p className="mt-1 font-medium text-white/90">
                           {t.name ?? "-"}
@@ -126,7 +119,7 @@ export default async function TeamsSearchPage({ searchParams }: Props) {
           <GlassCard className="mt-10 max-w-xl p-5 text-sm text-white/50">
             <p>
               Try a number you know, or part of a team name. Results open the
-              team page with Scout stats for this season.
+              team page with Scout stats.
             </p>
             <p className="mt-3">
               Example:{" "}

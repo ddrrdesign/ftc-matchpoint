@@ -25,7 +25,7 @@ export default async function DemoMatchPage({ params }: Props) {
   const match = getMatchBySlug(slug);
   if (!match) notFound();
 
-  const event = getEventByCode("CA-2026");
+  const event = getEventByCode("CA-CAS");
   const t = (num: number) =>
     MOCK_STATS_CA.find(
       (s) => MOCK_TEAMS.find((x) => x.id === s.teamId)?.number === num
@@ -74,7 +74,7 @@ export default async function DemoMatchPage({ params }: Props) {
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-10 md:py-14">
         <Link
-          href="/events/CA-2026#matches"
+          href="/events/CA-CAS#matches"
           className="text-sm text-violet-300/80"
         >
           ← Event matches (sample)

@@ -63,10 +63,7 @@ export function EventDetailMock({ event }: { event: Event }) {
             <p className="mt-2 font-mono text-sm text-violet-300/70">
               {event.code}
             </p>
-            <p className="mt-1 text-white/50">
-              {event.location} · {event.startDate}
-              {event.endDate ? ` – ${event.endDate}` : ""}
-            </p>
+            <p className="mt-1 text-white/50">{event.location}</p>
             <a
               href={`https://ftcscout.org/events/${encodeURIComponent(event.code)}`}
               className="mt-3 inline-flex text-sm text-violet-300/90 hover:underline"
