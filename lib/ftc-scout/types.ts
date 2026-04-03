@@ -13,7 +13,8 @@ export interface ScoutTeam {
 
 export interface StatWithRank {
   value: number;
-  rank: number;
+  /** Omitted when numbers come from a single event (no season rank pool). */
+  rank?: number;
 }
 
 export interface QuickStats {
@@ -24,6 +25,11 @@ export interface QuickStats {
   dc: StatWithRank;
   eg: StatWithRank;
   count: number;
+  /**
+   * When set, `tot`/`auto`/… reflect this event only (predictor), not season composite.
+   * Example: `FTCCMP1` for FIRST Championship (check FTC Scout for the season’s code).
+   */
+  statsScopeEventCode?: string;
 }
 
 export interface TeamEventParticipation {

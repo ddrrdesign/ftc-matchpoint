@@ -3,15 +3,36 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TeamScoutStatCard } from "@/components/matchup/team-scout-stat-card";
-import { getFtcScoutSeason } from "@/lib/ftc-scout/env";
-import type { QuickStats } from "@/lib/ftc-scout/types";
 import {
-  fetchQuickStats,
+  getFtcScoutPredictorEventCode,
+  getFtcScoutSeason,
+} from "@/lib/ftc-scout/env";
+import type { QuickStats, TeamEventParticipation } from "@/lib/ftc-scout/types";
+import {
+  fetchPredictorQuickStats,
   fetchScoutTeam,
   fetchTeamEvents,
   maxOprTotalNp,
+  oprTotalNpAtEvent,
 } from "@/lib/ftc-scout/queries";
 import { winProbabilitiesFromScoutTotals } from "@/lib/prediction";
+
+/** ISR: keep Predictor numbers relatively fresh during Championship week. */
+export const revalidate = 120;
+
+const SCOUT_FRESH = { revalidate: 120 } as const;
+
+function bestOprForPredictor(
+  ev: TeamEventParticipation[] | null | undefined,
+  eventCode: string | null
+): number | null {
+  if (!ev?.length) return null;
+  if (eventCode) {
+    const at = oprTotalNpAtEvent(ev, eventCode);
+    if (at != null) return at;
+  }
+  return maxOprTotalNp(ev);
+}
 
 type Search = { r?: string; b?: string };
 
@@ -41,6 +62,7 @@ export default async function PredictorPage({ searchParams }: Props) {
   const red = parsePair(sp.r);
   const blue = parsePair(sp.b);
   const season = getFtcScoutSeason();
+  const predictorEventCode = getFtcScoutPredictorEventCode();
 
   const invalid =
     (sp.r?.trim() || sp.b?.trim()) && (!red || !blue);
@@ -48,7 +70,7 @@ export default async function PredictorPage({ searchParams }: Props) {
   type Bundle = {
     num: number;
     team: Awaited<ReturnType<typeof fetchScoutTeam>>;
-    qs: Awaited<ReturnType<typeof fetchQuickStats>>;
+    qs: Awaited<ReturnType<typeof fetchPredictorQuickStats>>;
     ev: Awaited<ReturnType<typeof fetchTeamEvents>>;
   };
 
@@ -58,11 +80,11 @@ export default async function PredictorPage({ searchParams }: Props) {
     const nums = [red[0]!, red[1]!, blue[0]!, blue[1]!];
     bundles = await Promise.all(
       nums.map(async (num) => {
-        const [team, qs, ev] = await Promise.all([
-          fetchScoutTeam(num),
-          fetchQuickStats(num, season),
-          fetchTeamEvents(num, season),
+        const [team, ev] = await Promise.all([
+          fetchScoutTeam(num, SCOUT_FRESH),
+          fetchTeamEvents(num, season, SCOUT_FRESH),
         ]);
+        const qs = await fetchPredictorQuickStats(num, season, ev);
         return { num, team, qs, ev };
       })
     );
@@ -137,8 +159,18 @@ export default async function PredictorPage({ searchParams }: Props) {
             Compare alliances
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-white/50">
-            Two red, two blue. Scout quick stats, alliance Total NP sums. Not
-            official - for scouting talks.
+            Two red, two blue. Alliance Total NP sums from FTC Scout (season{" "}
+            {season}
+            {predictorEventCode ? (
+              <>
+                ; matchup uses event{" "}
+                <span className="font-mono text-white/55">
+                  {predictorEventCode}
+                </span>{" "}
+                when the team has a row there, otherwise season composite
+              </>
+            ) : null}
+            ). Not official — for scouting talks.
           </p>
         </div>
 
@@ -248,7 +280,11 @@ export default async function PredictorPage({ searchParams }: Props) {
                 {totEdge != null && (
                   <div className="mt-8 border-t border-white/[0.06] pt-6">
                     <p className="text-xs uppercase tracking-[0.2em] text-white/40">
-                      Why (alliance sums, Scout season)
+                      Why (alliance sums
+                      {predictorEventCode
+                        ? `, FTC Scout · ${predictorEventCode} OPR where available`
+                        : ", Scout season composite"}
+                      )
                     </p>
                     <ul className="mt-3 space-y-2 text-sm text-white/70">
                       <li>
@@ -315,7 +351,7 @@ export default async function PredictorPage({ searchParams }: Props) {
                         key={b.num}
                         team={team}
                         stats={qs}
-                        bestOprNp={maxOprTotalNp(ev)}
+                        bestOprNp={bestOprForPredictor(ev, predictorEventCode)}
                         error={
                           !b.qs.ok
                             ? `Scout: ${b.qs.status}`
@@ -343,7 +379,7 @@ export default async function PredictorPage({ searchParams }: Props) {
                         key={b.num}
                         team={team}
                         stats={qs}
-                        bestOprNp={maxOprTotalNp(ev)}
+                        bestOprNp={bestOprForPredictor(ev, predictorEventCode)}
                         error={
                           !b.qs.ok
                             ? `Scout: ${b.qs.status}`

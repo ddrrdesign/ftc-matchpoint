@@ -65,7 +65,11 @@ export function TeamScoutStatCard({ team, stats, bestOprNp, error }: Props) {
         <>
           <div className="mt-4 space-y-0">
             <Row
-              label="Total NP (composite)"
+              label={
+                stats.statsScopeEventCode
+                  ? `Total NP (${stats.statsScopeEventCode})`
+                  : "Total NP (composite)"
+              }
               value={stats.tot.value.toFixed(1)}
               rank={stats.tot.rank}
               pool={pool}
@@ -91,15 +95,29 @@ export function TeamScoutStatCard({ team, stats, bestOprNp, error }: Props) {
           </div>
           {bestOprNp != null && (
             <p className="mt-3 text-xs text-white/50">
-              Best event OPR (total NP):{" "}
+              {stats.statsScopeEventCode
+                ? "Event OPR (total NP) at predictor source: "
+                : "Best event OPR (total NP): "}
               <span className="font-mono text-violet-200/90">
                 {bestOprNp.toFixed(1)}
               </span>
             </p>
           )}
           <p className="mt-2 text-[11px] text-white/35">
-            Ranks vs ~{pool?.toLocaleString()} teams on FTC Scout for season{" "}
-            {stats.season}.
+            {stats.statsScopeEventCode ? (
+              <>
+                OPR/avg slice for event{" "}
+                <span className="font-mono text-white/45">
+                  {stats.statsScopeEventCode}
+                </span>{" "}
+                (season {stats.season}). Season ranks not shown.
+              </>
+            ) : (
+              <>
+                Ranks vs ~{pool?.toLocaleString()} teams on FTC Scout for season{" "}
+                {stats.season}.
+              </>
+            )}
           </p>
         </>
       ) : (
