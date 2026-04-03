@@ -3,15 +3,13 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TeamScoutStatCard } from "@/components/matchup/team-scout-stat-card";
-import {
-  getFtcScoutPredictorEventCode,
-  getFtcScoutSeason,
-} from "@/lib/ftc-scout/env";
+import { getFtcScoutPredictorEventCode } from "@/lib/ftc-scout/env";
 import type { QuickStats, TeamEventParticipation } from "@/lib/ftc-scout/types";
 import {
   fetchPredictorQuickStats,
   fetchScoutTeam,
   fetchTeamEvents,
+  getEffectiveScoutSeason,
   maxOprTotalNp,
   oprTotalNpAtEvent,
 } from "@/lib/ftc-scout/queries";
@@ -61,7 +59,8 @@ export default async function PredictorPage({ searchParams }: Props) {
   const sp = await searchParams;
   const red = parsePair(sp.r);
   const blue = parsePair(sp.b);
-  const season = getFtcScoutSeason();
+  /** Resolves to a year Scout actually accepts (e.g. 2025 while 2026 returns Invalid season). */
+  const season = await getEffectiveScoutSeason();
   const predictorEventCode = getFtcScoutPredictorEventCode();
 
   const invalid =

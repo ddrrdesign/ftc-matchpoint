@@ -1,8 +1,9 @@
 /**
- * FTC Scout REST uses a season year (e.g. 2026 for Decode / Houston Championship).
- * See https://ftcscout.org/api/rest — seasons are calendar year numbers.
+ * FTC Scout REST uses a season year (Decode is tied to the year FIRST uses in Scout).
+ * See https://ftcscout.org/api/rest — not every calendar year is valid until Scout enables it.
  *
- * `FTC_SCOUT_SEASON` overrides (e.g. pin to 2025 for historical views).
+ * `FTC_SCOUT_SEASON` overrides (e.g. set 2026 once the API accepts it).
+ * Query helpers also fall back to older years on `400 Invalid season`.
  */
 export function getFtcScoutSeason(): number {
   const raw = process.env.FTC_SCOUT_SEASON?.trim();
@@ -10,7 +11,7 @@ export function getFtcScoutSeason(): number {
     const n = Number.parseInt(raw, 10);
     if (!Number.isNaN(n)) return n;
   }
-  return 2026;
+  return 2025;
 }
 
 /**

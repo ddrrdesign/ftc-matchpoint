@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { getFtcScoutPredictorEventCode, getFtcScoutSeason } from "./env";
 import type {
   QuickStats,
@@ -8,6 +10,34 @@ import type {
   TeamEventStatsDetail,
 } from "./types";
 import { scoutGet, type ScoutResult } from "./client";
+
+function invalidSeasonResponse(message: string): boolean {
+  return /invalid season/i.test(message);
+}
+
+/** Tries preferred year, then fallbacks until Scout accepts the season (avoids 400 Invalid season). */
+function seasonCandidates(preferred: number): number[] {
+  const chain = [preferred, 2025, 2024, 2023].filter((y) => y >= 2020);
+  return [...new Set(chain)];
+}
+
+/**
+ * One probe per request: which season Scout currently serves (cached).
+ * Use for UI copy so we show the real year after env says e.g. 2026.
+ */
+export const getEffectiveScoutSeason = cache(async (): Promise<number> => {
+  const preferred = getFtcScoutSeason();
+  for (const y of seasonCandidates(preferred)) {
+    const r = await scoutGet<unknown>(
+      `/teams/1/quick-stats?season=${y}`,
+      { revalidate: 86_400 }
+    );
+    if (r.ok) return y;
+    if (r.status === 400 && invalidSeasonResponse(r.message)) continue;
+    break;
+  }
+  return preferred;
+});
 
 export async function fetchScoutTeam(
   teamNumber: number,
@@ -23,11 +53,23 @@ export async function fetchQuickStats(
   season?: number,
   fetchOpts?: { revalidate?: number }
 ) {
-  const y = season ?? getFtcScoutSeason();
-  return scoutGet<QuickStats>(
-    `/teams/${teamNumber}/quick-stats?season=${y}`,
-    fetchOpts
-  );
+  const preferred = season ?? getFtcScoutSeason();
+  let last: ScoutResult<QuickStats> = {
+    ok: false,
+    status: 400,
+    message: "Invalid season",
+  };
+  for (const y of seasonCandidates(preferred)) {
+    const res = await scoutGet<QuickStats>(
+      `/teams/${teamNumber}/quick-stats?season=${y}`,
+      fetchOpts
+    );
+    if (res.ok) return res;
+    last = res;
+    if (res.status === 400 && invalidSeasonResponse(res.message)) continue;
+    return res;
+  }
+  return last;
 }
 
 export async function fetchTeamEvents(
@@ -35,11 +77,23 @@ export async function fetchTeamEvents(
   season?: number,
   fetchOpts?: { revalidate?: number }
 ) {
-  const y = season ?? getFtcScoutSeason();
-  return scoutGet<TeamEventParticipation[]>(
-    `/teams/${teamNumber}/events/${y}`,
-    fetchOpts
-  );
+  const preferred = season ?? getFtcScoutSeason();
+  let last: ScoutResult<TeamEventParticipation[]> = {
+    ok: false,
+    status: 400,
+    message: "Invalid season",
+  };
+  for (const y of seasonCandidates(preferred)) {
+    const res = await scoutGet<TeamEventParticipation[]>(
+      `/teams/${teamNumber}/events/${y}`,
+      fetchOpts
+    );
+    if (res.ok) return res;
+    last = res;
+    if (res.status === 400 && invalidSeasonResponse(res.message)) continue;
+    return res;
+  }
+  return last;
 }
 
 function pickOprAvg(d: TeamEventStatsDetail | null | undefined) {
@@ -73,7 +127,7 @@ export function quickStatsFromEventParticipation(
   const eg = Math.max(0, tot - auto - dc);
 
   return {
-    season,
+    season: p.season ?? season,
     number: teamNumber,
     tot: { value: tot },
     auto: { value: auto },
