@@ -128,23 +128,28 @@ export default async function PredictorPage({ searchParams }: Props) {
   return (
     <PageShell>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 md:max-w-7xl md:py-12 lg:px-10 xl:max-w-[88rem] xl:px-14">
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          Predictor
-        </h1>
-        <p className="mt-2 max-w-xl text-sm text-white/55">
-          Two red, two blue. We pull Scout quick stats and compare alliance sums
-          (Total NP). Not official - for scouting talks.
-        </p>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-10 sm:px-6 sm:py-12 md:py-16">
+        <div className="max-w-2xl">
+          <p className="text-xs font-medium uppercase tracking-[0.28em] text-violet-300/55">
+            Predictor
+          </p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
+            Compare alliances
+          </h1>
+          <p className="mt-4 text-lg leading-relaxed text-white/50">
+            Two red, two blue. Scout quick stats, alliance Total NP sums. Not
+            official - for scouting talks.
+          </p>
+        </div>
 
-        <ol className="mt-6 max-w-lg list-inside list-decimal space-y-1 text-sm text-white/45">
+        <ol className="mt-8 max-w-2xl list-inside list-decimal space-y-2 text-sm text-white/45">
           <li>Enter four team numbers (two per side).</li>
           <li>Compare runs on Total NP sums.</li>
           <li>Open team pages for detail.</li>
         </ol>
 
         <form
-          className="mt-8 max-w-3xl space-y-4"
+          className="mt-10 max-w-xl space-y-4"
           action="/predictor"
           method="get"
         >
@@ -159,7 +164,7 @@ export default async function PredictorPage({ searchParams }: Props) {
                 type="text"
                 defaultValue={sp.r ?? ""}
                 placeholder="27772, 19458"
-                className="mt-1 w-full rounded-xl border border-red-400/25 bg-red-500/[0.07] px-3 py-3 font-mono text-sm text-white placeholder:text-white/30 outline-none focus:border-red-400/45"
+                className="mt-1 min-h-12 w-full rounded-xl border border-red-400/25 bg-red-500/[0.07] px-4 py-3 font-mono text-sm text-white placeholder:text-white/30 outline-none focus:border-red-400/45"
               />
             </div>
             <div>
@@ -172,26 +177,26 @@ export default async function PredictorPage({ searchParams }: Props) {
                 type="text"
                 defaultValue={sp.b ?? ""}
                 placeholder="14522, 12345"
-                className="mt-1 min-h-12 w-full rounded-xl border border-blue-400/25 bg-blue-500/[0.07] px-3 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-blue-400/45 sm:text-sm"
+                className="mt-1 min-h-12 w-full rounded-xl border border-blue-400/25 bg-blue-500/[0.07] px-4 py-3 font-mono text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-400/45"
               />
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <button
               type="submit"
-              className="flex min-h-12 w-full touch-manipulation items-center justify-center rounded-xl border border-violet-400/35 bg-violet-500/20 px-6 text-sm font-medium text-violet-100 active:bg-violet-500/35 sm:w-auto sm:min-w-[8rem]"
+              className="flex min-h-12 w-full touch-manipulation items-center justify-center rounded-xl border border-violet-400/35 bg-violet-500/15 px-8 text-sm font-medium text-violet-100 transition active:bg-violet-500/30 sm:w-auto sm:min-w-[8rem]"
             >
               Compare
             </button>
             <Link
               href={swapHref}
-              className="flex min-h-12 touch-manipulation items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 active:bg-white/[0.08] sm:min-w-0"
+              className="flex min-h-12 touch-manipulation items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 transition active:bg-white/[0.08] sm:min-w-0"
             >
               Swap sides
             </Link>
             <Link
               href="/predictor"
-              className="flex min-h-12 touch-manipulation items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 active:bg-white/[0.08] sm:min-w-0"
+              className="flex min-h-12 touch-manipulation items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 transition active:bg-white/[0.08] sm:min-w-0"
             >
               Reset
             </Link>
@@ -356,16 +361,18 @@ export default async function PredictorPage({ searchParams }: Props) {
         )}
 
         {!sp.r?.trim() && !sp.b?.trim() && (
-          <p className="mt-8 text-sm text-white/45">
-            Try{" "}
-            <Link
-              href="/predictor?r=27772%2C19458&b=14522%2C12345"
-              className="text-violet-300 hover:underline"
-            >
-              example
-            </Link>
-            .
-          </p>
+          <GlassCard className="mt-10 max-w-xl p-5 text-sm text-white/50">
+            <p>
+              Enter four team numbers above, or open an{" "}
+              <Link
+                href="/predictor?r=27772%2C19458&b=14522%2C12345"
+                className="text-violet-300 hover:underline"
+              >
+                example matchup
+              </Link>
+              .
+            </p>
+          </GlassCard>
         )}
       </main>
     </PageShell>
