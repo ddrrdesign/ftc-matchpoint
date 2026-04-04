@@ -74,7 +74,7 @@ export function EventsCategoryHub({
   worlds,
 }: Props) {
   return (
-    <section className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
+    <section className="mt-8 w-full min-w-0 max-w-full space-y-5 sm:mt-10 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">
@@ -94,7 +94,7 @@ export function EventsCategoryHub({
           </Link>
         ) : null}
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
         <HubColumn
           title="Past events"
           subtitle="Completed competitions — qualifiers, meets, and championships that already finished."

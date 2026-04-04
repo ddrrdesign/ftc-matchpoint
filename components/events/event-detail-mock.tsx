@@ -46,7 +46,7 @@ export function EventDetailMock({ event }: { event: Event }) {
   return (
     <PageShell>
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-6 py-10 md:py-14">
+      <main className="mx-auto min-w-0 max-w-7xl overflow-x-clip px-3 py-10 sm:px-6 md:py-14">
         <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
           <div>
             <Link

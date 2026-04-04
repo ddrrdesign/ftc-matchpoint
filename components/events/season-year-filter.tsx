@@ -42,7 +42,7 @@ export function SeasonYearFilter({
       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">
         Game season
       </p>
-      <div className="mt-2.5 flex gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:gap-2 sm:overflow-visible">
+      <div className="mt-2.5 flex w-full min-w-0 max-w-full gap-2.5 overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:flex-wrap sm:gap-2 sm:overflow-visible sm:pb-1 [&::-webkit-scrollbar]:hidden">
         <Link
           prefetch
           href={seasonFilterHref(view, null, q)}

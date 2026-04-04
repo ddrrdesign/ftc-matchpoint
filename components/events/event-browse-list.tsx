@@ -116,8 +116,8 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-white/[0.08] bg-[#06040f]/80 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset] sm:mt-4 md:mt-10 md:rounded-2xl">
-      <ul className="md:hidden">
+    <div className="mt-3 w-full max-w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#06040f]/80 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset] sm:mt-4 md:mt-10 md:rounded-2xl">
+      <ul className="w-full min-w-0 md:hidden">
         {rows.map((r) => (
           <MobileEventCard key={r.rowKey} r={r} />
         ))}

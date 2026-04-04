@@ -34,7 +34,7 @@ export function EventRankingsTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#070512]/80 shadow-[0_0_40px_-20px_rgba(139,92,246,0.35)]">
+    <div className="max-w-full overflow-x-auto overscroll-x-contain rounded-2xl border border-white/[0.08] bg-[#070512]/80 shadow-[0_0_40px_-20px_rgba(139,92,246,0.35)] [-webkit-overflow-scrolling:touch]">
       <table className="w-full min-w-[720px] border-collapse text-left text-sm">
         <thead>
           <tr className="border-b border-white/[0.08] bg-violet-950/40 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">

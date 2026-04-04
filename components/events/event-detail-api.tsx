@@ -136,10 +136,10 @@ export function EventDetailApi({
   return (
     <PageShell>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-14">
-        <div className="relative mb-10 overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-950/50 via-[#0a0614] to-[#05030a] p-6 shadow-[0_0_80px_-30px_rgba(139,92,246,0.45)] sm:p-8">
+      <main className="mx-auto min-w-0 w-full max-w-7xl overflow-x-clip px-3 py-8 sm:px-6 md:py-14">
+        <div className="relative isolate mb-10 overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-950/50 via-[#0a0614] to-[#05030a] p-5 shadow-[0_0_80px_-30px_rgba(139,92,246,0.45)] sm:p-8">
           <div
-            className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-fuchsia-500/20 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-16 hidden h-48 w-48 rounded-full bg-fuchsia-500/20 blur-3xl sm:block sm:h-56 sm:w-56 md:-right-20 md:-top-20"
             aria-hidden
           />
           <Link
@@ -269,7 +269,7 @@ export function EventDetailApi({
         </div>
 
         <nav
-          className="mb-10 flex flex-wrap gap-x-4 gap-y-2 border-b border-white/[0.08] pb-3 text-sm text-white/55"
+          className="mb-10 flex w-full min-w-0 max-w-full flex-wrap gap-x-4 gap-y-2 overflow-x-auto overscroll-x-contain border-b border-white/[0.08] pb-3 [-webkit-overflow-scrolling:touch] text-sm text-white/55 sm:overflow-visible"
           aria-label="Event sections"
         >
           {(
@@ -288,7 +288,7 @@ export function EventDetailApi({
           ))}
         </nav>
 
-        <div className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mb-12 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {[
             { k: "Teams", v: teams.length },
             { k: "Matches loaded", v: matches.length },
@@ -319,60 +319,123 @@ export function EventDetailApi({
           <p className="mt-1 text-sm text-white/45">
             Completed matches from the FIRST API (newest first, up to 50).
           </p>
-          <GlassCard className="mt-4 overflow-hidden p-0">
-            <div className="grid grid-cols-[1fr_1fr_1fr_0.9fr_0.65fr] border-b border-white/[0.07] bg-white/[0.03] px-4 py-3 text-[10px] uppercase tracking-[0.15em] text-white/40 md:px-6">
-              <div>Match</div>
-              <div>Red</div>
-              <div>Blue</div>
-              <div>Score</div>
-              <div>Winner</div>
-            </div>
+          <GlassCard className="mt-4 w-full min-w-0 max-w-full overflow-hidden p-0">
             {latest.length === 0 ? (
-              <div className="px-6 py-8 text-sm text-white/45">
+              <div className="px-4 py-8 text-sm text-white/45 sm:px-6">
                 No completed matches in API response yet.
               </div>
             ) : (
-              latest.map((m, i) => {
-                const { red, blue } = teamsToAlliances(m.teams);
-                const rf = m.scoreRedFinal ?? 0;
-                const bf = m.scoreBlueFinal ?? 0;
-                const win = rf > bf ? "red" : bf > rf ? "blue" : null;
-                return (
-                  <Link
-                    key={`${m.tournamentLevel}-${m.series}-${m.matchNumber}-${i}`}
-                    href={matchHref(eventCode, m, seasonYear)}
-                    className="grid grid-cols-[1fr_1fr_1fr_0.9fr_0.65fr] items-center border-b border-white/[0.05] px-4 py-3.5 text-sm transition hover:bg-white/[0.03] md:px-6"
-                  >
-                    <span className="font-medium text-violet-200/90">
-                      {matchLabel(m)}
-                    </span>
-                    <span className="font-mono text-[12px] text-red-200/80">
-                      {red.length >= 2
+              <>
+                <div className="hidden border-b border-white/[0.07] bg-white/[0.03] px-4 py-3 text-[10px] uppercase tracking-[0.15em] text-white/40 md:grid md:grid-cols-[1fr_1fr_1fr_0.9fr_0.65fr] md:px-6">
+                  <div>Match</div>
+                  <div>Red</div>
+                  <div>Blue</div>
+                  <div>Score</div>
+                  <div>Winner</div>
+                </div>
+                <div className="md:hidden">
+                  {latest.map((m, i) => {
+                    const { red, blue } = teamsToAlliances(m.teams);
+                    const rf = m.scoreRedFinal ?? 0;
+                    const bf = m.scoreBlueFinal ?? 0;
+                    const win = rf > bf ? "red" : bf > rf ? "blue" : null;
+                    const redStr =
+                      red.length >= 2
                         ? formatAlliance([red[0]!, red[1]!])
-                        : red.join(" · ")}
-                    </span>
-                    <span className="font-mono text-[12px] text-blue-200/80">
-                      {blue.length >= 2
+                        : red.join(" · ");
+                    const blueStr =
+                      blue.length >= 2
                         ? formatAlliance([blue[0]!, blue[1]!])
-                        : blue.join(" · ")}
-                    </span>
-                    <span className="tabular-nums text-white/75">
-                      {rf} – {bf}
-                    </span>
-                    <span
-                      className={
-                        win === "red"
-                          ? "text-red-300"
-                          : win === "blue"
-                            ? "text-blue-300"
-                            : "text-white/40"
-                      }
-                    >
-                      {win === "red" ? "Red" : win === "blue" ? "Blue" : "Tie"}
-                    </span>
-                  </Link>
-                );
-              })
+                        : blue.join(" · ");
+                    return (
+                      <Link
+                        key={`m-${m.tournamentLevel}-${m.series}-${m.matchNumber}-${i}`}
+                        href={matchHref(eventCode, m, seasonYear)}
+                        className="block min-w-0 border-b border-white/[0.05] px-3 py-3.5 transition hover:bg-white/[0.03]"
+                      >
+                        <div className="flex min-w-0 items-start justify-between gap-2">
+                          <span className="min-w-0 truncate font-medium text-violet-200/90">
+                            {matchLabel(m)}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-sm text-white/75">
+                            {rf} – {bf}
+                          </span>
+                        </div>
+                        <div className="mt-2 min-w-0 space-y-1 font-mono text-[11px] leading-snug">
+                          <p className="break-words text-red-200/80">
+                            Red: {redStr}
+                          </p>
+                          <p className="break-words text-blue-200/80">
+                            Blue: {blueStr}
+                          </p>
+                        </div>
+                        <p
+                          className={`mt-2 text-xs ${
+                            win === "red"
+                              ? "text-red-300"
+                              : win === "blue"
+                                ? "text-blue-300"
+                                : "text-white/40"
+                          }`}
+                        >
+                          {win === "red"
+                            ? "Winner: Red"
+                            : win === "blue"
+                              ? "Winner: Blue"
+                              : "Tie"}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="hidden md:block">
+                  {latest.map((m, i) => {
+                    const { red, blue } = teamsToAlliances(m.teams);
+                    const rf = m.scoreRedFinal ?? 0;
+                    const bf = m.scoreBlueFinal ?? 0;
+                    const win = rf > bf ? "red" : bf > rf ? "blue" : null;
+                    return (
+                      <Link
+                        key={`${m.tournamentLevel}-${m.series}-${m.matchNumber}-${i}`}
+                        href={matchHref(eventCode, m, seasonYear)}
+                        className="grid grid-cols-[1fr_1fr_1fr_0.9fr_0.65fr] items-center border-b border-white/[0.05] px-4 py-3.5 text-sm transition hover:bg-white/[0.03] md:px-6"
+                      >
+                        <span className="font-medium text-violet-200/90">
+                          {matchLabel(m)}
+                        </span>
+                        <span className="font-mono text-[12px] text-red-200/80">
+                          {red.length >= 2
+                            ? formatAlliance([red[0]!, red[1]!])
+                            : red.join(" · ")}
+                        </span>
+                        <span className="font-mono text-[12px] text-blue-200/80">
+                          {blue.length >= 2
+                            ? formatAlliance([blue[0]!, blue[1]!])
+                            : blue.join(" · ")}
+                        </span>
+                        <span className="tabular-nums text-white/75">
+                          {rf} – {bf}
+                        </span>
+                        <span
+                          className={
+                            win === "red"
+                              ? "text-red-300"
+                              : win === "blue"
+                                ? "text-blue-300"
+                                : "text-white/40"
+                          }
+                        >
+                          {win === "red"
+                            ? "Red"
+                            : win === "blue"
+                              ? "Blue"
+                              : "Tie"}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </GlassCard>
         </section>
