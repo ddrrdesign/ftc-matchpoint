@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFtcSeasonRangeLabel } from "@/lib/ftc-api/season-label";
 
 function seasonFilterHref(
   view: "past" | "worlds",
@@ -13,7 +14,13 @@ function seasonFilterHref(
 }
 
 const chipBase =
-  "touch-manipulation inline-flex shrink-0 items-center justify-center rounded-full border px-3.5 py-2 text-sm font-medium tabular-nums transition sm:py-1.5 sm:text-xs";
+  "touch-manipulation inline-flex min-h-[48px] shrink-0 select-none items-center justify-center whitespace-nowrap rounded-full border px-4 py-2.5 text-[13px] font-semibold tabular-nums transition-transform duration-100 will-change-transform active:scale-[0.96] sm:min-h-0 sm:px-3.5 sm:py-2 sm:text-xs sm:active:scale-100";
+
+const chipInactive =
+  "border-white/14 bg-white/[0.06] text-white/75 hover:border-white/22 hover:bg-white/[0.1] active:bg-white/[0.14]";
+
+const chipActive =
+  "border-violet-400/50 bg-violet-500/25 text-violet-50 shadow-[0_0_0_1px_rgba(139,92,246,0.25)_inset] active:bg-violet-500/35";
 
 export function SeasonYearFilter({
   view,
@@ -33,16 +40,13 @@ export function SeasonYearFilter({
   return (
     <div className="mt-4">
       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">
-        FTC API / Scout season
+        Game season
       </p>
-      <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible">
+      <div className="mt-2.5 flex gap-2.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:gap-2 sm:overflow-visible">
         <Link
+          prefetch
           href={seasonFilterHref(view, null, q)}
-          className={`${chipBase} ${
-            allActive
-              ? "border-violet-400/45 bg-violet-500/20 text-violet-100"
-              : "border-white/12 bg-white/[0.04] text-white/65 hover:border-white/18 hover:bg-white/[0.07]"
-          }`}
+          className={`${chipBase} ${allActive ? chipActive : chipInactive}`}
         >
           All seasons
         </Link>
@@ -50,15 +54,12 @@ export function SeasonYearFilter({
           const on = selectedYear === y;
           return (
             <Link
+              prefetch
               key={y}
               href={seasonFilterHref(view, y, q)}
-              className={`${chipBase} ${
-                on
-                  ? "border-violet-400/45 bg-violet-500/20 text-violet-100"
-                  : "border-white/12 bg-white/[0.04] text-white/65 hover:border-white/18 hover:bg-white/[0.07]"
-              }`}
+              className={`${chipBase} ${on ? chipActive : chipInactive}`}
             >
-              {y}
+              {formatFtcSeasonRangeLabel(y)}
             </Link>
           );
         })}

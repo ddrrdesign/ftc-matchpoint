@@ -14,9 +14,14 @@ import type {
 } from "./types";
 import { matchLabel, normalizeTournamentQuery, teamsToAlliances } from "./match-utils";
 
-export async function fetchEventListings(season?: number) {
+export async function fetchEventListings(
+  season?: number,
+  opts?: { revalidate?: number }
+) {
   const y = season ?? getFtcSeasonYear();
-  return ftcGet<SeasonEventListingsV2>(`/v2.0/${y}/events`);
+  return ftcGet<SeasonEventListingsV2>(`/v2.0/${y}/events`, {
+    revalidate: opts?.revalidate ?? 600,
+  });
 }
 
 export type SeasonEventChunk = {
@@ -115,7 +120,8 @@ export async function fetchTeamCountAtEvent(
 ): Promise<number | null> {
   const q = new URLSearchParams({ eventCode, page: "1" });
   const res = await ftcGet<SeasonTeamListingsV2>(
-    `/v2.0/${season}/teams?${q}`
+    `/v2.0/${season}/teams?${q}`,
+    { revalidate: 900 }
   );
   if (!res?.ok) return null;
   const t = res.data.teamCountTotal;

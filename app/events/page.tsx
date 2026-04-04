@@ -36,6 +36,7 @@ import {
   formatEventVenueLine,
   isWorldsLevelEvent,
 } from "@/lib/ftc-api/event-presentation";
+import { formatFtcSeasonRangeLabel } from "@/lib/ftc-api/season-label";
 import { deriveEventStatus, formatEventLocation } from "@/lib/ftc-api/event-status";
 import {
   fetchEventListingsForSeasons,
@@ -677,7 +678,7 @@ export default async function EventsPage({ searchParams }: Props) {
             />
             <button
               type="submit"
-              className="touch-manipulation min-h-[48px] w-full shrink-0 rounded-2xl border border-violet-400/35 bg-violet-500/20 px-5 py-3 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 active:bg-violet-500/40 sm:min-h-0 sm:w-auto"
+              className="touch-manipulation min-h-[48px] w-full shrink-0 select-none rounded-2xl border border-violet-400/40 bg-violet-500/22 px-5 py-3 text-sm font-semibold text-violet-100 transition-transform duration-100 hover:bg-violet-500/32 active:scale-[0.98] active:bg-violet-500/42 sm:min-h-0 sm:w-auto"
             >
               Search
             </button>
@@ -768,7 +769,7 @@ export default async function EventsPage({ searchParams }: Props) {
                   : " · world championship"}
               {q ? ` · filtered by “${q}”` : ""}
               {(view === "past" || view === "worlds") && seasonQuery != null
-                ? ` · season ${seasonQuery}`
+                ? ` · ${formatFtcSeasonRangeLabel(seasonQuery)}`
                 : ""}
               {listSource === "first"
                 ? " · FIRST API"

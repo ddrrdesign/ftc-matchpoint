@@ -53,7 +53,7 @@ export async function fetchScoutEventsSearch(
   );
   return scoutGet<ScoutEventListItem[]>(
     `/events/search/${season}?limit=${limit}`,
-    { revalidate: opts?.revalidate ?? 900 }
+    { revalidate: opts?.revalidate ?? 1800 }
   );
 }
 

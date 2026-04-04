@@ -87,8 +87,9 @@ function HubColumn({ title, subtitle, view, q, total, previewRows, active }: Col
       }`}
     >
       <Link
+        prefetch
         href={viewHref(view, q)}
-        className="touch-manipulation block rounded-xl py-1 outline-none ring-violet-500/40 focus-visible:ring-2 active:opacity-90 sm:py-0"
+        className="touch-manipulation block select-none rounded-xl py-1 outline-none ring-violet-500/40 transition-transform duration-100 focus-visible:ring-2 active:scale-[0.99] active:bg-white/[0.04] sm:py-0 sm:active:scale-100 sm:active:bg-transparent"
       >
         <h2 className="text-base font-semibold tracking-tight text-white/95 sm:text-lg">
           {title}
@@ -174,8 +175,9 @@ export function EventsCategoryHub({
         </div>
         {activeView ? (
           <Link
+            prefetch
             href={allHref(q)}
-            className="touch-manipulation inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.05] px-4 text-sm font-medium text-white/85 transition hover:bg-white/[0.09] active:bg-white/[0.12] sm:h-auto sm:w-auto sm:justify-start"
+            className="touch-manipulation inline-flex h-12 w-full shrink-0 select-none items-center justify-center rounded-xl border border-white/14 bg-white/[0.06] px-4 text-sm font-semibold text-white/88 transition-transform duration-100 hover:bg-white/[0.1] active:scale-[0.98] active:bg-white/[0.14] sm:h-auto sm:w-auto sm:justify-start sm:active:scale-100"
           >
             ← All columns
           </Link>

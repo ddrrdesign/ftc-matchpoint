@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFtcSeasonRangeLabel } from "@/lib/ftc-api/season-label";
 import { uiEventStatusLabel } from "@/lib/ftc-api/event-status";
 import type { EventStatus } from "@/lib/types";
 
@@ -42,7 +43,7 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
             {r.code || "—"}
           </span>
           <p className="mt-0.5 text-[11px] tabular-nums text-white/40">
-            Season {r.seasonYear}
+            {formatFtcSeasonRangeLabel(r.seasonYear)}
           </p>
         </div>
         <span
@@ -75,14 +76,15 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
             href={r.primaryHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="touch-manipulation rounded-xl border border-sky-400/35 bg-sky-500/14 px-4 py-3 text-center text-sm font-medium text-sky-100/95 active:bg-sky-500/25 sm:min-w-[7.5rem]"
+            className="touch-manipulation min-h-[48px] select-none rounded-xl border border-sky-400/35 bg-sky-500/14 px-4 py-3 text-center text-sm font-semibold text-sky-100/95 transition-transform duration-100 active:scale-[0.98] active:bg-sky-500/30 sm:min-w-[7.5rem]"
           >
             {r.primaryLabel}
           </a>
         ) : (
           <Link
+            prefetch
             href={r.primaryHref}
-            className="touch-manipulation rounded-xl border border-white/14 bg-white/[0.08] px-4 py-3 text-center text-sm font-medium text-white/92 active:bg-white/[0.12] sm:min-w-[7.5rem]"
+            className="touch-manipulation min-h-[48px] select-none rounded-xl border border-white/14 bg-white/[0.08] px-4 py-3 text-center text-sm font-semibold text-white/92 transition-transform duration-100 active:scale-[0.98] active:bg-white/[0.14] sm:min-w-[7.5rem]"
           >
             {r.primaryLabel}
           </Link>
@@ -93,7 +95,7 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
             target="_blank"
             rel="noopener noreferrer"
             title="FTC Event Web — all events"
-            className="touch-manipulation rounded-xl border border-violet-400/30 bg-violet-500/12 px-4 py-3 text-center text-sm font-medium text-violet-200/95 active:bg-violet-500/22 sm:min-w-[7.5rem]"
+            className="touch-manipulation min-h-[48px] select-none rounded-xl border border-violet-400/30 bg-violet-500/12 px-4 py-3 text-center text-sm font-semibold text-violet-200/95 transition-transform duration-100 active:scale-[0.98] active:bg-violet-500/28 sm:min-w-[7.5rem]"
           >
             FIRST
           </a>
@@ -118,7 +120,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
           <thead>
             <tr className="border-b border-white/[0.08] bg-white/[0.03] text-[11px] font-medium uppercase tracking-wider text-white/40">
               <th className="whitespace-nowrap px-4 py-3 pl-5">Code</th>
-              <th className="whitespace-nowrap px-3 py-3 text-center tabular-nums">
+              <th className="min-w-[6.5rem] whitespace-nowrap px-3 py-3 text-center tabular-nums">
                 Season
               </th>
               <th className="min-w-[200px] px-4 py-3">Event</th>
@@ -143,7 +145,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                   {r.code || "—"}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3.5 text-center align-top text-xs tabular-nums text-white/55">
-                  {r.seasonYear}
+                  {formatFtcSeasonRangeLabel(r.seasonYear)}
                 </td>
                 <td className="px-4 py-3.5 align-top">
                   <p className="font-medium leading-snug text-white/90">
@@ -186,14 +188,15 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         href={r.primaryHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="touch-manipulation rounded-lg border border-sky-400/30 bg-sky-500/12 px-3 py-1.5 text-xs font-medium text-sky-100/95 transition hover:bg-sky-500/20"
+                        className="touch-manipulation inline-flex min-h-[36px] select-none items-center rounded-lg border border-sky-400/30 bg-sky-500/12 px-3 py-1.5 text-xs font-semibold text-sky-100/95 transition-transform duration-100 hover:bg-sky-500/20 active:scale-[0.97] active:bg-sky-500/28"
                       >
                         {r.primaryLabel}
                       </a>
                     ) : (
                       <Link
+                        prefetch
                         href={r.primaryHref}
-                        className="touch-manipulation rounded-lg border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/90 transition hover:bg-white/[0.1]"
+                        className="touch-manipulation inline-flex min-h-[36px] select-none items-center rounded-lg border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/90 transition-transform duration-100 hover:bg-white/[0.1] active:scale-[0.97] active:bg-white/[0.14]"
                       >
                         {r.primaryLabel}
                       </Link>
@@ -204,7 +207,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="FTC Event Web — all events"
-                        className="touch-manipulation rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-200/90 transition hover:bg-violet-500/18"
+                        className="touch-manipulation inline-flex min-h-[36px] select-none items-center rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-200/90 transition-transform duration-100 hover:bg-violet-500/18 active:scale-[0.97] active:bg-violet-500/26"
                       >
                         FIRST
                       </a>
