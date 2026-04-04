@@ -129,13 +129,6 @@ export default async function TeamsSearchPage({ searchParams }: Props) {
               >
                 27772
               </Link>
-              ,{" "}
-              <Link
-                href="/teams?q=Kazakhstan"
-                className="text-violet-300 hover:underline"
-              >
-                Kazakhstan
-              </Link>
               .
             </p>
           </GlassCard>

@@ -587,24 +587,6 @@ export default async function EventsPage({ searchParams }: Props) {
           ) : null}
         </header>
 
-        {listSource === "scout" ? (
-          <GlassCard className="mt-6 border-sky-400/25 bg-sky-500/10 p-4 text-sm text-sky-50/95 sm:mt-8 sm:p-5">
-            <p className="font-medium text-sky-100">
-              Full calendar without FIRST API keys
-            </p>
-            <p className="mt-2 text-sky-100/85">
-              This table is loaded from{" "}
-              <span className="font-mono text-sky-50/90">api.ftcscout.org</span>{" "}
-              (no auth). Use <span className="font-semibold">Scout</span> for
-              matches and stats on ftcscout.org. Add{" "}
-              <span className="font-mono">FTC_API_USERNAME</span> +{" "}
-              <span className="font-mono">FTC_API_KEY</span> on the server to
-              enable in-app <span className="font-semibold">Analytics</span>{" "}
-              pages here.
-            </p>
-          </GlassCard>
-        ) : null}
-
         {!apiOn && listSource === "mock" ? (
           <GlassCard className="mt-6 border-amber-400/30 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-50/95 sm:mt-8 sm:p-5">
             <p className="font-semibold text-amber-100">
