@@ -30,9 +30,15 @@ export type FtcFetchResult<T> =
 /**
  * Authenticated GET to FTC Events API. Returns null if credentials missing.
  */
+export type FtcFetchOptions = {
+  revalidate?: number;
+  /** For `revalidateTag` / on-demand invalidation (optional). */
+  tags?: string[];
+};
+
 export async function ftcGet<T>(
   path: string,
-  options?: { revalidate?: number }
+  options?: FtcFetchOptions
 ): Promise<FtcFetchResult<T> | null> {
   const auth = authHeader();
   if (!auth) return null;
@@ -40,12 +46,15 @@ export async function ftcGet<T>(
   const revalidate = options?.revalidate ?? 120;
   const url = `${ftcApiOrigin()}${path.startsWith("/") ? path : `/${path}`}`;
 
+  const next: { revalidate: number; tags?: string[] } = { revalidate };
+  if (options?.tags?.length) next.tags = options.tags;
+
   const res = await fetch(url, {
     headers: {
       Authorization: auth,
       Accept: "application/json",
     },
-    next: { revalidate },
+    next,
   });
 
   if (!res.ok) {

@@ -21,6 +21,7 @@ import {
   alliancesQueryTouched,
   type AllianceQuery,
 } from "@/lib/predictions/alliance-params";
+import { PredictionsOverallDetails } from "@/components/predictions/predictions-overall-details";
 import {
   FirstApiSetupGuide,
   FirstApiSetupPointer,
@@ -96,6 +97,15 @@ export default async function PredictionsPage({
 
   const allSeasonEvents = apiOn ? await fetchPredictionsSeasonEvents() : [];
   const eventRows = filterPredictionsEventsByQuery(allSeasonEvents, eventQuery);
+
+  const overallQueryKey = [
+    sp.r1,
+    sp.r2,
+    sp.b1,
+    sp.b2,
+    sp.r,
+    sp.b,
+  ].join("|");
 
   return (
     <PageShell>
@@ -179,10 +189,10 @@ export default async function PredictionsPage({
         ) : null}
 
         <div className={`space-y-4 ${!apiOn ? "mt-6 sm:mt-8" : "mt-10 sm:mt-12"}`}>
-          <details
-            id="overall"
-            open={overallDetailsOpen}
-            className="group scroll-mt-24 rounded-2xl border border-white/[0.1] bg-white/[0.03] open:border-violet-400/30 open:bg-white/[0.045]"
+          <PredictionsOverallDetails
+            defaultOpen={overallDetailsOpen}
+            scrollToAnalysisOnOpen={alliancesQueryComplete(sp as AllianceQuery)}
+            queryKey={overallQueryKey}
           >
             <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 touch-manipulation sm:p-6 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0 text-left">
@@ -211,7 +221,7 @@ export default async function PredictionsPage({
                 embedInPage
               />
             </div>
-          </details>
+          </PredictionsOverallDetails>
 
           <details
             id="event-analysis"
@@ -348,7 +358,10 @@ export default async function PredictionsPage({
                     {eventRows.map((ev) => {
                       const href = `/predictions/event/${encodeURIComponent(ev.code)}?season=${ev.season}`;
                       return (
-                        <li key={`${ev.season}-${ev.code}`} className="min-w-0">
+                        <li
+                          key={`${ev.season}-${ev.code}`}
+                          className="perf-list-row min-w-0"
+                        >
                           <Link
                             prefetch
                             href={href}

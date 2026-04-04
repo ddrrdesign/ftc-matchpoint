@@ -88,7 +88,7 @@ export default async function TeamsSearchPage({ searchParams }: Props) {
                 ? "No teams match that query."
                 : `${teams.length} result${teams.length === 1 ? "" : "s"}`}
             </p>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-5">
               {teams.map((t) => {
                 const loc = [t.city, t.state, t.country]
                   .filter(Boolean)

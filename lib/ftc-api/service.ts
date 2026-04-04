@@ -1,7 +1,9 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { getFtcSeasonYear } from "./env";
-import { ftcGet } from "./client";
+import { ftcGet, type FtcFetchOptions } from "./client";
 import type {
   AwardsModelV2,
   EventMatchResultsV2,
@@ -18,15 +20,16 @@ import {
   teamsToAlliances,
 } from "./match-utils";
 
-export async function fetchEventListings(
-  season?: number,
-  opts?: { revalidate?: number }
-) {
-  const y = season ?? getFtcSeasonYear();
-  return ftcGet<SeasonEventListingsV2>(`/v2.0/${y}/events`, {
-    revalidate: opts?.revalidate ?? 600,
-  });
-}
+/** Dedupes identical season+options within one RSC request (Next fetch also dedupes by URL). */
+export const fetchEventListings = cache(
+  async (season?: number, opts?: FtcFetchOptions) => {
+    const y = season ?? getFtcSeasonYear();
+    return ftcGet<SeasonEventListingsV2>(`/v2.0/${y}/events`, {
+      revalidate: opts?.revalidate ?? 900,
+      tags: opts?.tags ?? [`ftc-api`, `ftc-events-season-${y}`],
+    });
+  }
+);
 
 export type SeasonEventChunk = {
   season: number;
@@ -60,7 +63,10 @@ export async function fetchEventListingsForSeasons(
 
 export async function fetchSingleEvent(season: number, eventCode: string) {
   const q = new URLSearchParams({ eventCode });
-  return ftcGet<SeasonEventListingsV2>(`/v2.0/${season}/events?${q}`);
+  return ftcGet<SeasonEventListingsV2>(`/v2.0/${season}/events?${q}`, {
+    revalidate: 900,
+    tags: [`ftc-api`, `ftc-events-season-${season}`],
+  });
 }
 
 /**
@@ -83,8 +89,12 @@ export async function fetchEventDetailContext(
     preferredSeason + 1,
   ].filter((y) => y >= 2000 && y <= 2100);
   const unique = [...new Set(candidates)];
-  for (const y of unique) {
-    const res = await fetchSingleEvent(y, eventCode);
+  const results = await Promise.all(
+    unique.map((y) => fetchSingleEvent(y, eventCode))
+  );
+  for (let i = 0; i < unique.length; i++) {
+    const y = unique[i]!;
+    const res = results[i];
     if (!res?.ok) continue;
     const list = res.data.events ?? [];
     const ev = list.find(
@@ -98,12 +108,21 @@ export async function fetchEventDetailContext(
 
 export async function fetchRankings(season: number, eventCode: string) {
   const enc = encodeURIComponent(eventCode);
-  return ftcGet<EventRankingsModel>(`/v2.0/${season}/rankings/${enc}`);
+  return ftcGet<EventRankingsModel>(`/v2.0/${season}/rankings/${enc}`, {
+    revalidate: 180,
+    tags: [
+      `ftc-api`,
+      `ftc-rankings-${season}-${enc}`,
+    ],
+  });
 }
 
 export async function fetchEventAwards(season: number, eventCode: string) {
   const enc = encodeURIComponent(eventCode);
-  return ftcGet<AwardsModelV2>(`/v2.0/${season}/awards/${enc}`);
+  return ftcGet<AwardsModelV2>(`/v2.0/${season}/awards/${enc}`, {
+    revalidate: 600,
+    tags: [`ftc-api`, `ftc-awards-${season}-${enc}`],
+  });
 }
 
 /** FTC match-results API slices by match number (`start`–`end`, inclusive); default window is only 0–999. */
@@ -123,7 +142,11 @@ export async function fetchMatches(
     q.set("end", String(matchNumberRange.end));
   }
   return ftcGet<EventMatchResultsV2>(
-    `/v2.0/${season}/matches/${enc}?${q}`
+    `/v2.0/${season}/matches/${enc}?${q}`,
+    {
+      revalidate: 120,
+      tags: [`ftc-api`, `ftc-matches-${season}-${enc}`],
+    }
   );
 }
 
@@ -235,7 +258,8 @@ export async function fetchTeamsAtEvent(season: number, eventCode: string) {
       page: String(page),
     });
     const res = await ftcGet<SeasonTeamListingsV2>(
-      `/v2.0/${season}/teams?${q}`
+      `/v2.0/${season}/teams?${q}`,
+      { revalidate: 600, tags: [`ftc-api`, `ftc-teams-${season}`] }
     );
     if (!res) break;
     if (!res.ok) break;
@@ -251,7 +275,10 @@ export async function fetchTeamsAtEvent(season: number, eventCode: string) {
 
 export async function fetchTeamByNumber(season: number, teamNumber: number) {
   const q = new URLSearchParams({ teamNumber: String(teamNumber) });
-  return ftcGet<SeasonTeamListingsV2>(`/v2.0/${season}/teams?${q}`);
+  return ftcGet<SeasonTeamListingsV2>(`/v2.0/${season}/teams?${q}`, {
+    revalidate: 900,
+    tags: [`ftc-api`, `ftc-teams-${season}`],
+  });
 }
 
 export async function fetchOneMatch(
@@ -267,7 +294,8 @@ export async function fetchOneMatch(
     matchNumber: String(matchNumber),
   });
   const res = await ftcGet<EventMatchResultsV2>(
-    `/v2.0/${season}/matches/${enc}?${q}`
+    `/v2.0/${season}/matches/${enc}?${q}`,
+    { revalidate: 120, tags: [`ftc-api`, `ftc-matches-${season}-${enc}`] }
   );
   if (!res?.ok) return null;
   const list = res.data.matches ?? [];

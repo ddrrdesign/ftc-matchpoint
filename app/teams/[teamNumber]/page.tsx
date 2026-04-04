@@ -58,9 +58,18 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
     (_, i) => anchor - i
   ).filter((y) => y >= 2018 && y <= 2100);
 
-  const eventPulls = await Promise.all(
-    seasonsToLoad.map((y) => fetchTeamEvents(n, y, SCOUT_TEAM_CACHE))
-  );
+  const catalogSeasons = [
+    ...new Set([selectedSeason, ...seasonsToLoad]),
+  ].sort((a, b) => b - a);
+
+  const [eventPulls, catalogBlobs, scoutTeam, scoutQs] = await Promise.all([
+    Promise.all(
+      seasonsToLoad.map((y) => fetchTeamEvents(n, y, SCOUT_TEAM_CACHE))
+    ),
+    fetchScoutEventsForSeasons(catalogSeasons),
+    fetchScoutTeam(n, SCOUT_TEAM_CACHE),
+    fetchQuickStats(n, selectedSeason, SCOUT_TEAM_CACHE),
+  ]);
 
   const merged: TeamEventParticipation[] = [];
   const seenEv = new Set<string>();
@@ -89,10 +98,6 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
     .filter((y) => y >= 2018 && y <= 2100)
     .sort((a, b) => b - a);
 
-  const catalogSeasons = [
-    ...new Set([selectedSeason, ...seasonsToLoad]),
-  ].sort((a, b) => b - a);
-  const catalogBlobs = await fetchScoutEventsForSeasons(catalogSeasons);
   const catalogMerged: ScoutEventListItem[] = [];
   const seenCat = new Set<string>();
   for (const cr of catalogBlobs) {
@@ -104,11 +109,6 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
       catalogMerged.push(e);
     }
   }
-
-  const [scoutTeam, scoutQs] = await Promise.all([
-    fetchScoutTeam(n, SCOUT_TEAM_CACHE),
-    fetchQuickStats(n, selectedSeason, SCOUT_TEAM_CACHE),
-  ]);
 
   if (scoutTeam.ok && scoutQs.ok) {
     return (

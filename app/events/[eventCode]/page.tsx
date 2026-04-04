@@ -14,7 +14,6 @@ import {
   fetchEventAwards,
   fetchEventDetailContext,
   fetchRankings,
-  fetchTeamsAtEvent,
 } from "@/lib/ftc-api/service";
 
 type Props = {
@@ -62,8 +61,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
           codes.unshift(code);
         }
 
-        const [teams, matches, ...perCode] = await Promise.all([
-          fetchTeamsAtEvent(season, code),
+        const [matches, ...perCode] = await Promise.all([
           fetchAllMatchesForEvent(season, code),
           ...codes.map(async (c) => {
             const [r, a] = await Promise.all([
@@ -87,7 +85,6 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
             event={ev}
             eventCode={code}
             divisions={perCode}
-            teams={teams}
             matches={matches}
             focusTeam={focusTeam}
           />

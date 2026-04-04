@@ -78,7 +78,7 @@ export function EventRankingsTable({
               <tr
                 key={`${num}-${r.rank}-${i}`}
                 id={focusDomId}
-                className={`border-b border-white/[0.04] transition hover:bg-white/[0.03] ${
+                className={`perf-list-row border-b border-white/[0.04] transition hover:bg-white/[0.03] ${
                   focused
                     ? "bg-violet-500/[0.12] ring-1 ring-inset ring-violet-400/35"
                     : ""

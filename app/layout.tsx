@@ -12,7 +12,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://ftc-analytics.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "FTC MatchPoint - Alliance predictions & event context",
   description:
     "FIRST Tech Challenge: compare 2×2 alliances, win odds from Scout stats, events, and teams.",

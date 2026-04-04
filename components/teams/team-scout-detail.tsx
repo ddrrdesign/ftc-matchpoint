@@ -152,7 +152,7 @@ export function TeamScoutDetail({
             Tap a row for in-app analytics on FIRST data. Your team stays{" "}
             <span className="text-violet-200/90">highlighted</span> on that page.
           </p>
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 space-y-5">
             {rows.length === 0 ? (
               <GlassCard className="p-4 text-sm text-white/50">
                 No event participation in FTC Scout for the seasons we checked.
@@ -165,7 +165,12 @@ export function TeamScoutDetail({
                 const code = (e.eventCode ?? "").trim();
                 const href = `/events/${encodeURIComponent(code)}?season=${encodeURIComponent(String(seasonY))}&focusTeam=${encodeURIComponent(String(team.number))}${EVENT_ANALYTICS_HASH}`;
                 return (
-                  <Link key={`${seasonY}-${code}`} prefetch href={href}>
+                  <Link
+                    key={`${seasonY}-${code}`}
+                    prefetch
+                    href={href}
+                    className="perf-list-row block"
+                  >
                     <GlassCard className="flex flex-wrap items-center justify-between gap-3 p-4 transition hover:border-violet-400/25 hover:bg-white/[0.04]">
                       <div className="min-w-0 flex-1">
                         <p className="font-medium leading-snug text-white/90">

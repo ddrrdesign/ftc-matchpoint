@@ -35,7 +35,8 @@ import {
   type AllianceQuery,
 } from "@/lib/predictions/alliance-params";
 
-export const revalidate = 60;
+/** Align with match/ranking cache; page still feels fresh for live events. */
+export const revalidate = 120;
 
 function firstStr(
   v: string | string[] | undefined
@@ -125,16 +126,16 @@ export default async function EventPredictionPage({
   const location = formatEventLocation(ev);
   const status = deriveEventStatus(ev);
 
-  const teams = await fetchTeamsAtEvent(season, eventCode);
-  const registered = teams
-    .map((t) => t.teamNumber)
-    .filter((n): n is number => n != null && n > 0);
-  const roster = new Set(registered);
-
-  const [rankRes, matches] = await Promise.all([
+  const [teamsList, rankRes, matches] = await Promise.all([
+    fetchTeamsAtEvent(season, eventCode),
     fetchRankings(season, eventCode),
     fetchAllMatchesForEvent(season, eventCode),
   ]);
+
+  const registered = teamsList
+    .map((t) => t.teamNumber)
+    .filter((n): n is number => n != null && n > 0);
+  const roster = new Set(registered);
   const rankings = rankRes?.ok ? (rankRes.data.rankings ?? []) : [];
   const played = countPlayedMatches(matches);
   const statsMap = buildEventStatsMap(rankings, matches, registered);
@@ -216,8 +217,7 @@ export default async function EventPredictionPage({
           </p>
           <p className="mt-2 break-words text-sm text-white/50">{location}</p>
           <p className="mt-3 text-xs leading-relaxed text-white/40">
-            {registered.length} teams registered · {played} matches with scores in
-            API · status: {status}
+            {played} matches with scores in API · status: {status}
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <a
@@ -427,39 +427,6 @@ export default async function EventPredictionPage({
           </section>
         ) : null}
 
-        <section className="mt-10 max-w-2xl min-w-0 sm:mt-12">
-          <h2 className="text-sm font-semibold text-white/70">Registered teams</h2>
-          <p className="mt-1 text-xs text-white/40">
-            Use these numbers in the form above ({registered.length} total).
-          </p>
-          <ul className="mt-4 space-y-2 text-sm sm:columns-2 sm:gap-x-6 sm:space-y-0 md:columns-3">
-            {registered.slice(0, 120).map((n) => {
-              const t = teams.find((x) => x.teamNumber === n);
-              return (
-                <li
-                  key={n}
-                  className="break-inside-avoid font-mono text-[13px] text-white/65 sm:mb-1.5 sm:text-sm"
-                >
-                  {n}
-                  {t?.nameShort ? (
-                    <span className="ml-1.5 block text-xs text-white/35 sm:inline">
-                      {t.nameShort}
-                    </span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-          {registered.length > 120 ? (
-            <p className="mt-3 text-xs text-white/40">
-              Showing 120 of {registered.length}. Full roster on{" "}
-              <a href={firstUrl} className="text-violet-300 underline" target="_blank" rel="noreferrer">
-                FIRST
-              </a>
-              .
-            </p>
-          ) : null}
-        </section>
       </main>
     </PageShell>
   );

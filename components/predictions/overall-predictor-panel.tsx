@@ -200,13 +200,15 @@ export async function OverallPredictorPanel({
       )}
 
       {red && blue ? (
-        <AllianceScoutDeepDive
-          red={red}
-          blue={blue}
-          scoutSeason={season}
-          predictorEventCode={predictorEventCode}
-          className="mt-10"
-        />
+        <div id="overall-analysis" className="scroll-mt-24">
+          <AllianceScoutDeepDive
+            red={red}
+            blue={blue}
+            scoutSeason={season}
+            predictorEventCode={predictorEventCode}
+            className="mt-10"
+          />
+        </div>
       ) : null}
 
       {!alliancesQueryTouched(sp) && (

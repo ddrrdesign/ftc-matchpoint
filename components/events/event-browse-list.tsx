@@ -24,7 +24,6 @@ export type EventBrowseListRow = {
   location: string;
   venueExtra: string | null;
   typeLine: string | null;
-  teams: string;
   status: EventStatus;
   /** In-app event page (Analytics button only; card body is not a link). */
   detailHref: string;
@@ -41,7 +40,7 @@ const actionBtnBase =
 
 function MobileEventCard({ r }: { r: EventBrowseListRow }) {
   return (
-    <li className="min-w-0 border-b border-white/[0.06] last:border-b-0">
+    <li className="perf-list-row min-w-0 border-b border-white/[0.06] last:border-b-0">
       <div className="min-w-0 px-3 py-3 sm:px-5 sm:py-4">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-2 gap-y-1">
           <div className="min-w-0 flex-1">
@@ -78,10 +77,6 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
         {r.venueExtra && r.venueExtra !== r.location ? (
           <p className="mt-0.5 text-[10px] text-white/32">{r.venueExtra}</p>
         ) : null}
-        <p className="mt-1.5 text-[10px] text-white/40 sm:text-xs">
-          Teams{" "}
-          <span className="font-medium tabular-nums text-white/65">{r.teams}</span>
-        </p>
       </div>
       <div className="flex min-w-0 flex-wrap gap-2 px-3 pb-3 sm:gap-2 sm:px-5 sm:pb-4">
         {r.primaryExternal ? (
@@ -129,7 +124,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
         ))}
       </ul>
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-white/[0.08] bg-white/[0.03] text-[11px] font-medium uppercase tracking-wider text-white/40">
               <th className="min-w-[220px] px-4 py-3 pl-5">Event</th>
@@ -137,10 +132,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                 Season
               </th>
               <th className="whitespace-nowrap px-4 py-3">Dates</th>
-              <th className="min-w-[140px] px-4 py-3">Where</th>
-              <th className="whitespace-nowrap px-4 py-3 text-center tabular-nums">
-                Teams
-              </th>
+              <th className="min-w-[160px] px-4 py-3">Where</th>
               <th className="whitespace-nowrap px-4 py-3">Status</th>
               <th className="whitespace-nowrap px-4 py-3 pr-5 text-right">
                 Links
@@ -149,7 +141,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
           </thead>
           <tbody className="divide-y divide-white/[0.06]">
             {rows.map((r) => (
-              <tr key={r.rowKey}>
+              <tr key={r.rowKey} className="perf-list-row">
                 <td className="px-4 py-3.5 pl-5 align-top">
                   <Link
                     prefetch
@@ -186,9 +178,6 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                       {r.venueExtra}
                     </span>
                   ) : null}
-                </td>
-                <td className="px-4 py-3.5 text-center align-top font-medium tabular-nums text-white/75">
-                  {r.teams}
                 </td>
                 <td className="px-4 py-3.5 align-top">
                   <span

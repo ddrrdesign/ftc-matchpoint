@@ -6,7 +6,7 @@ export type ScoutResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; message: string };
 
-type ScoutFetchOpts = { revalidate?: number };
+export type ScoutFetchOpts = { revalidate?: number; tags?: string[] };
 
 export async function scoutGet<T>(
   path: string,
@@ -14,9 +14,11 @@ export async function scoutGet<T>(
 ): Promise<ScoutResult<T>> {
   const url = `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
   const revalidate = opts?.revalidate ?? 300;
+  const next: { revalidate: number; tags?: string[] } = { revalidate };
+  if (opts?.tags?.length) next.tags = opts.tags;
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
-    next: { revalidate },
+    next,
   });
 
   if (res.status === 404) {

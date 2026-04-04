@@ -21,7 +21,7 @@ export function GlassCard({
 }: GlassCardProps) {
   return (
     <div
-      className={`rounded-[1.35rem] border border-white/[0.09] bg-white/[0.035] backdrop-blur-sm ${glowClass[glow]} ${className}`}
+      className={`rounded-[1.35rem] border border-white/[0.09] bg-white/[0.035] [contain:layout] backdrop-blur-sm motion-reduce:backdrop-blur-none ${glowClass[glow]} ${className}`}
     >
       {children}
     </div>

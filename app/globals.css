@@ -28,3 +28,9 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Long event tables / lists: defer layout of off-screen rows (no DOM or UX change). */
+@utility perf-list-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}

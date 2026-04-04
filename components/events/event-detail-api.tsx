@@ -10,7 +10,6 @@ import type {
   AwardAssignmentModelV2,
   MatchResultModelV2,
   SeasonEventModelV2,
-  SeasonTeamModelV2,
   TeamRankingModel,
 } from "@/lib/ftc-api/types";
 import {
@@ -63,7 +62,6 @@ type Props = {
   event: SeasonEventModelV2;
   eventCode: string;
   divisions: EventDivisionSlice[];
-  teams: SeasonTeamModelV2[];
   matches: MatchResultModelV2[];
   /** When set (e.g. from a team page), highlight and scroll to this team. */
   focusTeam?: number | null;
@@ -80,7 +78,6 @@ export function EventDetailApi({
   event,
   eventCode,
   divisions,
-  teams,
   matches,
   focusTeam: focusTeamProp,
 }: Props) {
@@ -94,11 +91,7 @@ export function EventDetailApi({
   const status = deriveEventStatus(event);
   const showInsightsToy = status !== "completed";
 
-  const teamInFirst72 =
-    focusTeamNum != null &&
-    teams.slice(0, 72).some((t) => t.teamNumber === focusTeamNum);
-
-  let rankingsScrollTargetAssigned = teamInFirst72;
+  let rankingsScrollTargetAssigned = false;
   const location = formatEventLocation(event);
   const venueLine = formatEventVenueLine(event);
   const typeLine = formatEventTypeLine(event);
@@ -163,7 +156,6 @@ export function EventDetailApi({
     [
       ["#matches", "Matches"],
       ["#rankings", "Rankings"],
-      ["#teams", "Teams"],
       ...(showInsightsToy ? ([["#insights", "Insights"]] as const) : []),
       ["#awards", "Awards"],
       ["#links", "Streams"],
@@ -299,7 +291,7 @@ export function EventDetailApi({
             >
               FIRST FTC Events API
             </a>
-            : qualification rankings, awards, matches, and team list. OPR and
+            : qualification rankings, awards, and matches. OPR and
             community analytics are often deeper on{" "}
             <a
               href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
@@ -329,7 +321,6 @@ export function EventDetailApi({
           className="mb-12 scroll-mt-28 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
         >
           {[
-            { k: "Teams", v: teams.length },
             { k: "Matches loaded", v: matches.length },
             { k: "Played (timed)", v: played.length },
             { k: "Ranking rows", v: totalRankRows },
@@ -515,64 +506,6 @@ export function EventDetailApi({
               );
             })}
           </div>
-        </section>
-
-        <section id="teams" className="mb-14 scroll-mt-28">
-          <h2 className="text-xl font-semibold">Teams</h2>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
-            Registered for this event code per FIRST team list API. Tap a number
-            for Scout stats when available.
-          </p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {teams.slice(0, 72).map((t) => {
-              const isFocus =
-                focusTeamNum != null && t.teamNumber === focusTeamNum;
-              return (
-              <Link
-                key={t.teamNumber}
-                href={`/teams/${t.teamNumber}`}
-                id={
-                  isFocus && teamInFirst72
-                    ? `team-focus-${t.teamNumber}`
-                    : undefined
-                }
-              >
-                <GlassCard
-                  glow="violet"
-                  className={`h-full border-white/[0.07] p-4 transition hover:border-violet-400/30 hover:bg-white/[0.06] ${
-                    isFocus
-                      ? "border-violet-400/45 bg-violet-500/[0.12] ring-2 ring-violet-400/30"
-                      : ""
-                  }`}
-                >
-                  <p className="font-mono text-lg font-semibold text-violet-100">
-                    {t.teamNumber}
-                  </p>
-                  <p className="line-clamp-2 text-sm font-medium text-white/80">
-                    {t.nameShort ?? t.nameFull ?? "-"}
-                  </p>
-                  {t.nameFull &&
-                  t.nameShort &&
-                  t.nameFull.trim() !== t.nameShort.trim() ? (
-                    <p className="mt-1 line-clamp-2 text-xs text-white/40">
-                      {t.nameFull}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 text-xs text-white/45">
-                    {[t.city, t.stateProv, t.country]
-                      .filter(Boolean)
-                      .join(", ") || "—"}
-                  </p>
-                </GlassCard>
-              </Link>
-            );
-            })}
-          </div>
-          {teams.length > 72 && (
-            <p className="mt-3 text-sm text-white/45">
-              Showing 72 of {teams.length} teams.
-            </p>
-          )}
         </section>
 
         {showInsightsToy ? (

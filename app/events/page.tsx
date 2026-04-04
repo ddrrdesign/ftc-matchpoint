@@ -38,11 +38,7 @@ import {
 } from "@/lib/ftc-api/event-presentation";
 import { formatFtcSeasonRangeLabel } from "@/lib/ftc-api/season-label";
 import { deriveEventStatus, formatEventLocation } from "@/lib/ftc-api/event-status";
-import {
-  fetchEventListingsForSeasons,
-  fetchTeamCountsForSeasonCodePairs,
-  teamCountCacheKey,
-} from "@/lib/ftc-api/service";
+import { fetchEventListingsForSeasons } from "@/lib/ftc-api/service";
 import type { SeasonEventModelV2 } from "@/lib/ftc-api/types";
 import {
   fetchScoutEventsForSeasons,
@@ -54,7 +50,6 @@ import type { ScoutEventListItem } from "@/lib/ftc-scout/types";
 const OFFICIAL_EVENTS_URL = "https://ftc-events.firstinspires.org/#allevents";
 const SCOUT_HUB = "https://ftcscout.org";
 
-const MAX_TEAM_PAIR_LOOKUPS = 100;
 /** Open event detail on the stats / API summary block (not the hero). */
 const EVENT_ANALYTICS_HASH = "#event-overview";
 
@@ -190,39 +185,13 @@ type RowSource = {
   m: ReturnType<typeof dedupeEventsByCode>[number];
 };
 
-function uniquePairsForDisplayedBuckets(
-  past: RowSource[],
-  premier: RowSource[],
-  worlds: RowSource[]
-): { season: number; code: string }[] {
-  const seen = new Set<string>();
-  const out: { season: number; code: string }[] = [];
-  const add = (rows: RowSource[]) => {
-    for (const { seasonYear, m } of rows) {
-      const code = m.event.code?.trim() ?? "";
-      if (!code) continue;
-      const k = teamCountCacheKey(seasonYear, code);
-      if (seen.has(k)) continue;
-      seen.add(k);
-      out.push({ season: seasonYear, code });
-    }
-  };
-  add(past);
-  add(premier);
-  add(worlds);
-  return out;
-}
-
 function mapApiRowSourcesToBrowseRows(
-  sources: RowSource[],
-  teamCounts: Map<string, number | null>
+  sources: RowSource[]
 ): EventBrowseListRow[] {
   return sources.map(({ seasonYear, m }, i) => {
     const e = m.event;
     const code = e.code?.trim() ?? "";
     const st = deriveEventStatus(e);
-    const key = code ? teamCountCacheKey(seasonYear, code) : "";
-    const teamN = key ? teamCounts.get(key) ?? null : null;
     const dates = formatEventDateRange(e) ?? "TBA";
     const loc = formatEventLocation(e);
     const venue = formatEventVenueLine(e);
@@ -238,7 +207,6 @@ function mapApiRowSourcesToBrowseRows(
       location: loc || "—",
       venueExtra: venue && venue !== loc ? venue : null,
       typeLine: formatEventTypeLine(e),
-      teams: teamN != null ? String(teamN) : "—",
       status: st,
       detailHref,
       primaryHref: detailHref,
@@ -278,7 +246,6 @@ function mapScoutEventsToBrowseRows(items: ScoutEventListItem[]): EventBrowseLis
       location: scoutLocationLine(e),
       venueExtra: scoutVenueExtra(e),
       typeLine: scoutTypeLine(e),
-      teams: "—",
       status: st,
       detailHref,
       primaryHref: scoutEventWebUrl(seasonY, code),
@@ -307,7 +274,6 @@ function mapMockEventsToBrowseRows(
       location: e.location,
       venueExtra: null,
       typeLine: e.firstInspiresUrl ? "Demo" : null,
-      teams: String(e.teamCount),
       status: e.status,
       detailHref,
       primaryHref: detailHref,
@@ -413,18 +379,6 @@ export default async function EventsPage({ searchParams }: Props) {
     ? rowSources.filter(({ m }) => isWorldsLevelEvent(m.event))
     : [];
 
-  let teamCounts = new Map<string, number | null>();
-  if (showApi) {
-    const pairs = uniquePairsForDisplayedBuckets(
-      pastSources,
-      premierSources,
-      worldsSources
-    );
-    if (pairs.length > 0 && pairs.length <= MAX_TEAM_PAIR_LOOKUPS) {
-      teamCounts = await fetchTeamCountsForSeasonCodePairs(pairs, 14);
-    }
-  }
-
   let scoutMerged: ScoutEventListItem[] = [];
   let scoutFetchHadError = false;
   if (!showApi) {
@@ -493,19 +447,19 @@ export default async function EventsPage({ searchParams }: Props) {
 
   const pastRows: EventBrowseListRow[] =
     listSource === "first"
-      ? mapApiRowSourcesToBrowseRows(pastSources, teamCounts)
+      ? mapApiRowSourcesToBrowseRows(pastSources)
       : listSource === "scout"
         ? mapScoutEventsToBrowseRows(pastScoutFiltered)
         : mapMockEventsToBrowseRows(pastMockFiltered, defaultSeason);
   const premierRows: EventBrowseListRow[] =
     listSource === "first"
-      ? mapApiRowSourcesToBrowseRows(premierSources, teamCounts)
+      ? mapApiRowSourcesToBrowseRows(premierSources)
       : listSource === "scout"
         ? mapScoutEventsToBrowseRows(premierScoutFiltered)
         : mapMockEventsToBrowseRows(premierMockFiltered, defaultSeason);
   const worldsRows: EventBrowseListRow[] =
     listSource === "first"
-      ? mapApiRowSourcesToBrowseRows(worldsSources, teamCounts)
+      ? mapApiRowSourcesToBrowseRows(worldsSources)
       : listSource === "scout"
         ? mapScoutEventsToBrowseRows(worldsScoutFiltered)
         : mapMockEventsToBrowseRows(worldsMockFiltered, defaultSeason);
@@ -568,13 +522,6 @@ export default async function EventsPage({ searchParams }: Props) {
             the Event Web all-events hub; with FIRST API keys we also show{" "}
             <span className="text-white/55">Analytics</span> inside this app.
           </p>
-          {showApi && rowSources.length > MAX_TEAM_PAIR_LOOKUPS ? (
-            <p className="mt-3 max-w-2xl text-xs text-white/35">
-              Team counts load in batches. More than{" "}
-              {MAX_TEAM_PAIR_LOOKUPS} rows after search — Teams shows “—” until
-              you filter further.
-            </p>
-          ) : null}
         </header>
 
         {!apiOn && listSource === "mock" ? (
