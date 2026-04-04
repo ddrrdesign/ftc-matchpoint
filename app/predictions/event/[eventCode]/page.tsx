@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -72,6 +73,7 @@ export default async function EventPredictionPage({
   params: Promise<{ eventCode: string }>;
   searchParams: Promise<Search>;
 }) {
+  await connection();
   if (!isFtcApiConfigured()) {
     return (
       <PageShell>

@@ -49,7 +49,7 @@ export async function fetchPredictionsSeasonEvents(): Promise<PredictionsEventRo
   const rows: PredictionsEventRow[] = [];
   const seen = new Set<string>();
 
-  const maxRaw = process.env.FTC_PREDICTIONS_EVENT_LIMIT?.trim();
+  const maxRaw = process.env["FTC_PREDICTIONS_EVENT_LIMIT"]?.trim();
   const maxEvents = maxRaw
     ? Math.min(
         5000,

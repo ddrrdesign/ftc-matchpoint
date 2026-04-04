@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { EventDetailApi } from "@/components/events/event-detail-api";
 import type { EventDivisionSlice } from "@/components/events/event-detail-api";
 import { EventDetailMock } from "@/components/events/event-detail-mock";
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export default async function EventDetailPage({ params, searchParams }: Props) {
+  await connection();
   const qSeason = parseFtcSeasonQueryParam((await searchParams).season);
   const { eventCode: raw } = await params;
   const eventCode = decodeURIComponent(raw);

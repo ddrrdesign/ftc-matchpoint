@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -73,6 +74,7 @@ export default async function PredictionsPage({
 }: {
   searchParams: Promise<Search>;
 }) {
+  await connection();
   const apiOn = isFtcApiConfigured();
   const sp = await searchParams;
   const eventQuery = typeof sp.q === "string" ? sp.q : "";

@@ -183,21 +183,30 @@ export function FirstApiSetupGuide() {
             <div className="min-w-0">
               <p className="font-medium text-emerald-100/95">Проверка на этом сайте</p>
               <p className="mt-1.5 text-amber-100/80">
-                Откройте{" "}
+                Сервисная проверка (JSON):{" "}
+                <Link
+                  href="/api/ftc-status"
+                  className="text-amber-200 underline hover:text-amber-50"
+                >
+                  /api/ftc-status
+                </Link>{" "}
+                — <code className="text-amber-100/90">credentialsPresent</code> и{" "}
+                <code className="text-amber-100/90">listingsOk</code> без выдачи секретов.
+                Затем{" "}
                 <Link
                   href="/events"
                   className="text-amber-200 underline hover:text-amber-50"
                 >
                   Events
                 </Link>{" "}
-                — должен подтянуться список с FIRST. Затем раздел{" "}
+                и{" "}
                 <Link
                   href="/predictions#event-analysis"
                   className="text-amber-200 underline hover:text-amber-50"
                 >
                   Predictions → Event analysis
                 </Link>
-                : каталог ивентов и переход к предикту по площадке.
+                .
               </p>
             </div>
           </li>

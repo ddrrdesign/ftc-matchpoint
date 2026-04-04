@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -23,6 +24,7 @@ import {
 type Props = { params: Promise<{ teamNumber: string }> };
 
 export default async function TeamDetailPage({ params }: Props) {
+  await connection();
   const { teamNumber } = await params;
   const n = Number.parseInt(teamNumber, 10);
   if (Number.isNaN(n)) notFound();

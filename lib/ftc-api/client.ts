@@ -8,8 +8,8 @@ import { getFtcCredentials } from "./env";
  */
 function ftcApiOrigin(): string {
   let raw =
-    process.env.FTC_API_ORIGIN?.trim() ||
-    process.env.FTC_API_BASE_URL?.trim();
+    process.env["FTC_API_ORIGIN"]?.trim() ||
+    process.env["FTC_API_BASE_URL"]?.trim();
   if (!raw) return "https://ftc-api.firstinspires.org";
   raw = raw.replace(/\/$/, "");
   if (raw.endsWith("/v2.0")) raw = raw.slice(0, -"/v2.0".length);

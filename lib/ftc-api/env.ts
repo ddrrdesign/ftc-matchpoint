@@ -1,6 +1,6 @@
 /** Season year as used in FTC API paths, e.g. 2026 for 2025–2026 season */
 export function getFtcSeasonYear(): number {
-  const raw = process.env.FTC_SEASON_YEAR;
+  const raw = process.env["FTC_SEASON_YEAR"];
   if (raw) {
     const n = Number.parseInt(raw, 10);
     if (!Number.isNaN(n)) return n;
@@ -14,7 +14,7 @@ export function getFtcSeasonYear(): number {
  * (default 10) seasons back from `getFtcSeasonYear()`, capped at 25.
  */
 export function getFtcSeasonYearsForEventIndex(): number[] {
-  const raw = process.env.FTC_SEASON_YEARS?.trim();
+  const raw = process.env["FTC_SEASON_YEARS"]?.trim();
   if (raw) {
     const ys = raw
       .split(/[\s,]+/)
@@ -23,7 +23,7 @@ export function getFtcSeasonYearsForEventIndex(): number[] {
     if (ys.length) return [...new Set(ys)].sort((a, b) => b - a);
   }
   const anchor = getFtcSeasonYear();
-  let span = Number.parseInt(process.env.FTC_SEASON_INDEX_SPAN ?? "15", 10);
+  let span = Number.parseInt(process.env["FTC_SEASON_INDEX_SPAN"] ?? "15", 10);
   if (Number.isNaN(span) || span < 1) span = 15;
   span = Math.min(span, 25);
   return Array.from({ length: span }, (_, i) => anchor - i);
@@ -36,7 +36,7 @@ export function getFtcSeasonYearsForEventIndex(): number[] {
  * `FTC_PREDICTIONS_API_SEASONS=2025,2024` (comma-separated, newest first).
  */
 export function getFtcSeasonYearsForPredictionsCatalog(): number[] {
-  const raw = process.env.FTC_PREDICTIONS_API_SEASONS?.trim();
+  const raw = process.env["FTC_PREDICTIONS_API_SEASONS"]?.trim();
   if (raw) {
     const ys = raw
       .split(/[\s,]+/)
@@ -61,8 +61,9 @@ export function parseFtcSeasonQueryParam(
 }
 
 export function getFtcCredentials(): { username: string; key: string } | null {
-  const username = process.env.FTC_API_USERNAME?.trim();
-  const key = process.env.FTC_API_KEY?.trim();
+  // Bracket access so Next.js does not inline undefined at build time (Vercel runtime env).
+  const username = process.env["FTC_API_USERNAME"]?.trim();
+  const key = process.env["FTC_API_KEY"]?.trim();
   if (!username || !key) return null;
   return { username, key };
 }

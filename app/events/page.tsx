@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   EventBrowseList,
   type EventBrowseListRow,
@@ -293,6 +294,7 @@ function mapMockEventsToBrowseRows(
 }
 
 export default async function EventsPage({ searchParams }: Props) {
+  await connection();
   const sp = await searchParams;
   const raw = sp.q;
   const q = typeof raw === "string" ? raw.trim().toLowerCase() : "";
