@@ -32,19 +32,26 @@ export function firstSeasonHubUrl(seasonYear: number): string {
 export const FIRST_FTC_API_DOCS_URL =
   "https://ftc-events.firstinspires.org/api-docs/index.html";
 
-/** Houston / Detroit–style FIRST Championship & CMP codes */
-export function isWorldsLevelEvent(e: SeasonEventModelV2): boolean {
-  const code = (e.code ?? "").toUpperCase();
-  const name = (e.name ?? "").toLowerCase();
-  if (/^FTCCMP\d*/.test(code)) return true;
-  if (/FIRST\s+CHAMPIONSHIP|WORLD\s+FESTIVAL/.test(name)) return true;
+/** Houston / Detroit–style FIRST Championship & CMP codes (API, Scout, mock). */
+export function isWorldsFromCodeAndName(
+  code?: string | null,
+  name?: string | null
+): boolean {
+  const c = (code ?? "").toUpperCase();
+  const n = (name ?? "").toLowerCase();
+  if (/^FTCCMP\d*/.test(c)) return true;
+  if (/first\s+championship|world\s+festival/.test(n)) return true;
   if (
-    name.includes("championship") &&
-    (name.includes("houston") || name.includes("detroit"))
+    n.includes("championship") &&
+    (n.includes("houston") || n.includes("detroit"))
   ) {
     return true;
   }
   return false;
+}
+
+export function isWorldsLevelEvent(e: SeasonEventModelV2): boolean {
+  return isWorldsFromCodeAndName(e.code, e.name);
 }
 
 /** Sort bucket for events without a clear country / region in the API */

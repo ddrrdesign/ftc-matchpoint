@@ -3,6 +3,11 @@ import {
   EventBrowseList,
   type EventBrowseListRow,
 } from "@/components/events/event-browse-list";
+import {
+  EventsCategoryHub,
+  eventsToHubPreviewRows,
+  sliceHubPreview,
+} from "@/components/events/events-category-hub";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -18,10 +23,17 @@ import {
   dedupeEventsByCode,
 } from "@/lib/ftc-api/events-listing";
 import {
-  firstEventWebUrl,
+  isPremierTierMockEvent,
+  isPremierTierApiEvent,
+  isPremierTierScoutEvent,
+  isWorldsLevelScoutEvent,
+  isWorldsMockEvent,
+} from "@/lib/ftc-api/event-buckets";
+import {
   formatEventDateRange,
   formatEventTypeLine,
   formatEventVenueLine,
+  isWorldsLevelEvent,
 } from "@/lib/ftc-api/event-presentation";
 import { deriveEventStatus, formatEventLocation } from "@/lib/ftc-api/event-status";
 import {
@@ -145,13 +157,119 @@ function compareScoutByStartDesc(a: ScoutEventListItem, b: ScoutEventListItem) {
 }
 
 type Props = {
-  searchParams: Promise<{ q?: string | string[] }>;
+  searchParams: Promise<{ q?: string | string[]; view?: string | string[] }>;
 };
+
+type RowSource = {
+  seasonYear: number;
+  m: ReturnType<typeof dedupeEventsByCode>[number];
+};
+
+function mapApiRowSourcesToBrowseRows(
+  sources: RowSource[],
+  teamCounts: Map<string, number | null>
+): EventBrowseListRow[] {
+  return sources.map(({ seasonYear, m }, i) => {
+    const e = m.event;
+    const code = e.code?.trim() ?? "";
+    const st = deriveEventStatus(e);
+    const key = code ? teamCountCacheKey(seasonYear, code) : "";
+    const teamN = key ? teamCounts.get(key) ?? null : null;
+    const dates = formatEventDateRange(e) ?? "TBA";
+    const loc = formatEventLocation(e);
+    const venue = formatEventVenueLine(e);
+    const qs = new URLSearchParams();
+    qs.set("season", String(seasonYear));
+    return {
+      rowKey: `${seasonYear}-${code || e.eventId || i}`,
+      code,
+      name: (e.name ?? code).trim() || "Event",
+      dates,
+      location: loc || "—",
+      venueExtra: venue && venue !== loc ? venue : null,
+      typeLine: formatEventTypeLine(e),
+      teams: teamN != null ? String(teamN) : "—",
+      status: st,
+      primaryHref: `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`,
+      primaryLabel: "Analytics",
+      primaryExternal: false,
+      firstWebUrl: OFFICIAL_EVENTS_URL,
+      divisionsNote:
+        m.sourceRowCount > 1
+          ? `${m.sourceRowCount} divisions (merged)`
+          : null,
+    };
+  });
+}
+
+function mapScoutEventsToBrowseRows(items: ScoutEventListItem[]): EventBrowseListRow[] {
+  return items.map((e, i) => {
+    const code = (e.code ?? "").trim();
+    const seasonY = e.season;
+    const st = deriveEventStatus({
+      dateStart: e.start ?? undefined,
+      dateEnd: e.end ?? undefined,
+    });
+    const dates =
+      formatEventDateRange({
+        dateStart: e.start ?? undefined,
+        dateEnd: e.end ?? undefined,
+      }) ?? "TBA";
+    return {
+      rowKey: `${seasonY}-${code}-${i}`,
+      code,
+      name: (e.name ?? code).trim() || "Event",
+      dates,
+      location: scoutLocationLine(e),
+      venueExtra: scoutVenueExtra(e),
+      typeLine: scoutTypeLine(e),
+      teams: "—",
+      status: st,
+      primaryHref: scoutEventWebUrl(seasonY, code),
+      primaryLabel: "Scout",
+      primaryExternal: true,
+      firstWebUrl: OFFICIAL_EVENTS_URL,
+      divisionsNote: null,
+    };
+  });
+}
+
+function mapMockEventsToBrowseRows(
+  events: Event[],
+  defaultSeason: number
+): EventBrowseListRow[] {
+  return events.map((e) => {
+    const qs = new URLSearchParams();
+    qs.set("season", String(defaultSeason));
+    return {
+      rowKey: e.id,
+      code: e.code,
+      name: e.name,
+      dates: mockDateRangeDisplay(e),
+      location: e.location,
+      venueExtra: null,
+      typeLine: e.firstInspiresUrl ? "Demo" : null,
+      teams: String(e.teamCount),
+      status: e.status,
+      primaryHref: `/events/${encodeURIComponent(e.code)}?${qs.toString()}`,
+      primaryLabel: "Analytics",
+      primaryExternal: false,
+      firstWebUrl: OFFICIAL_EVENTS_URL,
+      divisionsNote: null,
+    };
+  });
+}
 
 export default async function EventsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const raw = sp.q;
   const q = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  const rawView = sp.view;
+  const view =
+    typeof rawView === "string" &&
+    (rawView === "past" || rawView === "premier" || rawView === "worlds")
+      ? rawView
+      : null;
 
   const apiOn = isFtcApiConfigured();
   const defaultSeason = getFtcSeasonYear();
@@ -194,11 +312,6 @@ export default async function EventsPage({ searchParams }: Props) {
     succeededChunks.length > 0 &&
     succeededChunks.some((c) => c.events.length > 0);
 
-  type RowSource = {
-    seasonYear: number;
-    m: ReturnType<typeof dedupeEventsByCode>[number];
-  };
-
   const rowSources: RowSource[] = [];
   if (showApi) {
     for (const { season, events } of succeededChunks) {
@@ -228,39 +341,22 @@ export default async function EventsPage({ searchParams }: Props) {
     }
   }
 
-  const apiRows: EventBrowseListRow[] = showApi
-    ? rowSources.map(({ seasonYear, m }, i) => {
-        const e = m.event;
-        const code = e.code?.trim() ?? "";
-        const st = deriveEventStatus(e);
-        const key = code ? teamCountCacheKey(seasonYear, code) : "";
-        const teamN = key ? teamCounts.get(key) ?? null : null;
-        const dates = formatEventDateRange(e) ?? "TBA";
-        const loc = formatEventLocation(e);
-        const venue = formatEventVenueLine(e);
-        const qs = new URLSearchParams();
-        qs.set("season", String(seasonYear));
-        return {
-          rowKey: `${seasonYear}-${code || e.eventId || i}`,
-          seasonYear,
-          code,
-          name: (e.name ?? code).trim() || "Event",
-          dates,
-          location: loc || "—",
-          venueExtra: venue && venue !== loc ? venue : null,
-          typeLine: formatEventTypeLine(e),
-          teams: teamN != null ? String(teamN) : "—",
-          status: st,
-          primaryHref: `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`,
-          primaryLabel: "Analytics",
-          primaryExternal: false,
-          firstWebUrl: code ? firstEventWebUrl(seasonYear, code) : null,
-          divisionsNote:
-            m.sourceRowCount > 1
-              ? `${m.sourceRowCount} divisions (merged)`
-              : null,
-        };
+  const pastSources = showApi
+    ? rowSources.filter(
+        ({ m }) => deriveEventStatus(m.event) === "completed"
+      )
+    : [];
+  const premierSources = showApi
+    ? rowSources.filter(({ m }) => {
+        const st = deriveEventStatus(m.event);
+        return (
+          (st === "upcoming" || st === "live") &&
+          isPremierTierApiEvent(m.event)
+        );
       })
+    : [];
+  const worldsSources = showApi
+    ? rowSources.filter(({ m }) => isWorldsLevelEvent(m.event))
     : [];
 
   let scoutMerged: ScoutEventListItem[] = [];
@@ -289,66 +385,39 @@ export default async function EventsPage({ searchParams }: Props) {
   /** Scout returned at least one event (before search filter). */
   const scoutHasData = !showApi && scoutMerged.length > 0;
 
-  const scoutRows: EventBrowseListRow[] = scoutHasData && scoutFiltered.length > 0
-    ? scoutFiltered.map((e, i) => {
-        const code = (e.code ?? "").trim();
-        const seasonY = e.season;
+  const pastScoutFiltered = scoutHasData
+    ? scoutFiltered.filter(
+        (e) =>
+          deriveEventStatus({
+            dateStart: e.start ?? undefined,
+            dateEnd: e.end ?? undefined,
+          }) === "completed"
+      )
+    : [];
+  const premierScoutFiltered = scoutHasData
+    ? scoutFiltered.filter((e) => {
         const st = deriveEventStatus({
           dateStart: e.start ?? undefined,
           dateEnd: e.end ?? undefined,
         });
-        const dates =
-          formatEventDateRange({
-            dateStart: e.start ?? undefined,
-            dateEnd: e.end ?? undefined,
-          }) ?? "TBA";
-        return {
-          rowKey: `${seasonY}-${code}-${i}`,
-          seasonYear: seasonY,
-          code,
-          name: (e.name ?? code).trim() || "Event",
-          dates,
-          location: scoutLocationLine(e),
-          venueExtra: scoutVenueExtra(e),
-          typeLine: scoutTypeLine(e),
-          teams: "—",
-          status: st,
-          primaryHref: scoutEventWebUrl(seasonY, code),
-          primaryLabel: "Scout",
-          primaryExternal: true,
-          firstWebUrl: code ? firstEventWebUrl(seasonY, code) : null,
-          divisionsNote: null,
-        };
+        return (
+          (st === "upcoming" || st === "live") &&
+          isPremierTierScoutEvent(e)
+        );
       })
+    : [];
+  const worldsScoutFiltered = scoutHasData
+    ? scoutFiltered.filter((e) => isWorldsLevelScoutEvent(e))
     : [];
 
   const filteredMock = [...filterMockEvents(q)].sort(compareMockByStartDesc);
-
-  const mockRows: EventBrowseListRow[] = filteredMock.map((e) => {
-    const qs = new URLSearchParams();
-    qs.set("season", String(defaultSeason));
-    return {
-      rowKey: e.id,
-      seasonYear: defaultSeason,
-      code: e.code,
-      name: e.name,
-      dates: mockDateRangeDisplay(e),
-      location: e.location,
-      venueExtra: null,
-      typeLine: e.firstInspiresUrl
-        ? "Demo · FIRST link → real page on firstinspires.org"
-        : null,
-      teams: String(e.teamCount),
-      status: e.status,
-      primaryHref: `/events/${encodeURIComponent(e.code)}?${qs.toString()}`,
-      primaryLabel: "Analytics",
-      primaryExternal: false,
-      firstWebUrl:
-        e.firstInspiresUrl ??
-        (e.code ? firstEventWebUrl(defaultSeason, e.code) : null),
-      divisionsNote: null,
-    };
-  });
+  const pastMockFiltered = filteredMock.filter((e) => e.status === "completed");
+  const premierMockFiltered = filteredMock.filter(
+    (e) =>
+      (e.status === "upcoming" || e.status === "live") &&
+      isPremierTierMockEvent(e)
+  );
+  const worldsMockFiltered = filteredMock.filter((e) => isWorldsMockEvent(e));
 
   const listSource: "first" | "scout" | "mock" = showApi
     ? "first"
@@ -356,14 +425,33 @@ export default async function EventsPage({ searchParams }: Props) {
       ? "scout"
       : "mock";
 
-  const displayRows =
+  const pastRows: EventBrowseListRow[] =
     listSource === "first"
-      ? apiRows
+      ? mapApiRowSourcesToBrowseRows(pastSources, teamCounts)
       : listSource === "scout"
-        ? scoutRows
-        : mockRows;
+        ? mapScoutEventsToBrowseRows(pastScoutFiltered)
+        : mapMockEventsToBrowseRows(pastMockFiltered, defaultSeason);
+  const premierRows: EventBrowseListRow[] =
+    listSource === "first"
+      ? mapApiRowSourcesToBrowseRows(premierSources, teamCounts)
+      : listSource === "scout"
+        ? mapScoutEventsToBrowseRows(premierScoutFiltered)
+        : mapMockEventsToBrowseRows(premierMockFiltered, defaultSeason);
+  const worldsRows: EventBrowseListRow[] =
+    listSource === "first"
+      ? mapApiRowSourcesToBrowseRows(worldsSources, teamCounts)
+      : listSource === "scout"
+        ? mapScoutEventsToBrowseRows(worldsScoutFiltered)
+        : mapMockEventsToBrowseRows(worldsMockFiltered, defaultSeason);
 
-  const totalShown = displayRows.length;
+  const activeBucketRows: EventBrowseListRow[] =
+    view === "past"
+      ? pastRows
+      : view === "premier"
+        ? premierRows
+        : view === "worlds"
+          ? worldsRows
+          : [];
   const yearsLoaded = showApi
     ? [...new Set(succeededChunks.map((c) => c.season))].sort((a, b) => b - a)
     : [];
@@ -375,15 +463,15 @@ export default async function EventsPage({ searchParams }: Props) {
   return (
     <PageShell>
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 md:py-16">
+      <main className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-12 md:py-16">
         <header className="max-w-3xl">
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-violet-300/55">
             Events
           </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
+          <h1 className="mt-2 text-[1.65rem] font-semibold leading-tight tracking-tight sm:mt-3 sm:text-4xl md:text-5xl">
             All competitions
           </h1>
-          <p className="mt-2 text-xs text-white/35">
+          <p className="mt-2 break-words text-xs text-white/35">
             {listSource === "first" ? (
               <>
                 Source:{" "}
@@ -414,7 +502,7 @@ export default async function EventsPage({ searchParams }: Props) {
               <>Demo rows only · default season {defaultSeason}</>
             )}
           </p>
-          <p className="mt-4 text-base leading-relaxed text-white/45">
+          <p className="mt-3 text-sm leading-relaxed text-white/45 sm:mt-4 sm:text-base">
             Official registration and schedules:{" "}
             <a
               href={OFFICIAL_EVENTS_URL}
@@ -433,8 +521,8 @@ export default async function EventsPage({ searchParams }: Props) {
             >
               FTC Scout API
             </a>
-            . <span className="text-white/55">FIRST</span> opens the
-            firstinspires.org event page; with FIRST API keys we also show{" "}
+            . <span className="text-white/55">FIRST</span> in the table opens
+            the Event Web all-events hub; with FIRST API keys we also show{" "}
             <span className="text-white/55">Analytics</span> inside this app.
           </p>
           {showApi && rowSources.length > MAX_TEAM_PAIR_LOOKUPS ? (
@@ -447,7 +535,7 @@ export default async function EventsPage({ searchParams }: Props) {
         </header>
 
         {listSource === "scout" ? (
-          <GlassCard className="mt-8 border-sky-400/25 bg-sky-500/10 p-4 text-sm text-sky-50/95">
+          <GlassCard className="mt-6 border-sky-400/25 bg-sky-500/10 p-4 text-sm text-sky-50/95 sm:mt-8 sm:p-5">
             <p className="font-medium text-sky-100">
               Full calendar without FIRST API keys
             </p>
@@ -465,7 +553,7 @@ export default async function EventsPage({ searchParams }: Props) {
         ) : null}
 
         {!apiOn && listSource === "mock" ? (
-          <GlassCard className="mt-8 border-amber-400/30 bg-amber-500/10 p-5 text-sm leading-relaxed text-amber-50/95">
+          <GlassCard className="mt-6 border-amber-400/30 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-50/95 sm:mt-8 sm:p-5">
             <p className="font-semibold text-amber-100">
               FTC Scout did not return events (offline or error)
             </p>
@@ -494,7 +582,7 @@ export default async function EventsPage({ searchParams }: Props) {
         ) : null}
 
         {apiOn && !showApi ? (
-          <GlassCard className="mt-8 border-amber-400/20 bg-amber-500/8 p-4 text-sm text-amber-100/90">
+          <GlassCard className="mt-6 border-amber-400/20 bg-amber-500/8 p-4 text-sm text-amber-100/90 sm:mt-8">
             <p className="font-medium">FIRST API did not return event listings</p>
             <p className="mt-2 text-amber-100/75">
               Using FTC Scout below if available, otherwise demo rows.
@@ -503,7 +591,7 @@ export default async function EventsPage({ searchParams }: Props) {
         ) : null}
 
         {apiError && (
-          <GlassCard className="mt-8 border-red-400/20 bg-red-500/10 p-4 text-sm text-red-100/90">
+          <GlassCard className="mt-6 border-red-400/20 bg-red-500/10 p-4 text-sm text-red-100/90 sm:mt-8">
             <p className="font-medium">
               Could not load events ({apiError.status})
             </p>
@@ -520,60 +608,128 @@ export default async function EventsPage({ searchParams }: Props) {
           </GlassCard>
         ) : null}
 
-        <form className="mt-10 max-w-xl" method="get" action="/events">
+        <form
+          className="mt-8 w-full max-w-xl sm:mt-10"
+          method="get"
+          action="/events"
+        >
+          {view ? (
+            <input type="hidden" name="view" value={view} />
+          ) : null}
           <label htmlFor="q" className="sr-only">
             Search events
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
             <input
               id="q"
               name="q"
               type="search"
               defaultValue={q}
-              placeholder="Filter by name, code, city, country…"
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none ring-violet-500/40 focus:border-violet-500/40 focus:ring-2"
+              placeholder="Name, code, city, country…"
+              enterKeyHint="search"
+              className="min-h-[48px] w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder:text-white/35 outline-none ring-violet-500/40 focus:border-violet-500/40 focus:ring-2 sm:min-h-0 sm:text-sm"
             />
             <button
               type="submit"
-              className="shrink-0 rounded-2xl border border-violet-400/35 bg-violet-500/20 px-5 py-3 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+              className="touch-manipulation min-h-[48px] w-full shrink-0 rounded-2xl border border-violet-400/35 bg-violet-500/20 px-5 py-3 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 active:bg-violet-500/40 sm:min-h-0 sm:w-auto"
             >
               Search
             </button>
           </div>
         </form>
 
-        {listSource === "first" && rowSources.length === 0 ? (
-          <p className="mt-10 text-white/50">No events match “{q}”.</p>
-        ) : listSource === "scout" && scoutFiltered.length === 0 ? (
-          <p className="mt-10 text-white/50">
+        {listSource === "first" && rowSources.length === 0 && q ? (
+          <p className="mt-6 text-white/50">
             No events match “{q}”.{" "}
             <Link
-              href="/events"
+              href={view ? `/events?view=${view}` : "/events"}
               className="text-violet-300 underline hover:text-violet-200"
             >
               Clear search
             </Link>
           </p>
-        ) : listSource === "mock" && filteredMock.length === 0 ? (
-          <p className="mt-10 text-white/50">No demo events match “{q}”.</p>
-        ) : (
-          <>
-            <p className="mt-6 text-sm text-white/40">
-              Showing{" "}
-              <span className="font-medium text-white/60 tabular-nums">
-                {totalShown}
+        ) : null}
+        {listSource === "scout" && scoutHasData && scoutFiltered.length === 0 ? (
+          <p className="mt-6 text-white/50">
+            No events match “{q}”.{" "}
+            <Link
+              href={view ? `/events?view=${view}` : "/events"}
+              className="text-violet-300 underline hover:text-violet-200"
+            >
+              Clear search
+            </Link>
+          </p>
+        ) : null}
+        {listSource === "mock" && filteredMock.length === 0 ? (
+          <p className="mt-6 text-white/50">
+            No demo events match “{q}”.
+            {q ? (
+              <>
+                {" "}
+                <Link
+                  href={view ? `/events?view=${view}` : "/events"}
+                  className="text-violet-300 underline hover:text-violet-200"
+                >
+                  Clear search
+                </Link>
+              </>
+            ) : null}
+          </p>
+        ) : null}
+
+        <EventsCategoryHub
+          q={q}
+          activeView={view}
+          past={{
+            preview: sliceHubPreview(eventsToHubPreviewRows(pastRows)),
+            total: pastRows.length,
+          }}
+          premier={{
+            preview: sliceHubPreview(eventsToHubPreviewRows(premierRows)),
+            total: premierRows.length,
+          }}
+          worlds={{
+            preview: sliceHubPreview(eventsToHubPreviewRows(worldsRows)),
+            total: worldsRows.length,
+          }}
+        />
+
+        {view ? (
+          <section className="mt-8 sm:mt-10">
+            <p className="text-xs text-white/40 sm:text-sm">
+              <span className="font-medium text-white/55">
+                {activeBucketRows.length}
               </span>{" "}
-              {totalShown === 1 ? "row" : "rows"}
-              {q ? ` for “${q}”` : ""}
+              {activeBucketRows.length === 1 ? "event" : "events"}
+              {view === "past"
+                ? " · past"
+                : view === "premier"
+                  ? " · upcoming premier"
+                  : " · world championship"}
+              {q ? ` · filtered by “${q}”` : ""}
               {listSource === "first"
                 ? " · FIRST API"
                 : listSource === "scout"
                   ? " · FTC Scout"
                   : " · demo"}
             </p>
-            <EventBrowseList rows={displayRows} />
-          </>
-        )}
+            {activeBucketRows.length > 0 ? (
+              <EventBrowseList rows={activeBucketRows} />
+            ) : (
+              <p className="mt-6 text-white/45">
+                Nothing in this category with the current filter. Try another
+                column or{" "}
+                <Link
+                  href={q ? `/events?q=${encodeURIComponent(q)}` : "/events"}
+                  className="text-violet-300 underline hover:text-violet-200"
+                >
+                  clear the search
+                </Link>
+                .
+              </p>
+            )}
+          </section>
+        ) : null}
       </main>
     </PageShell>
   );
