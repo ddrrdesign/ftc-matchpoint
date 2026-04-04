@@ -255,17 +255,20 @@ export default async function EventsPage({ searchParams }: Props) {
             )}
           </p>
           <p className="mt-4 text-base leading-relaxed text-white/45">
-            Merged index from the same FIRST listings as{" "}
+            Same event catalog as{" "}
             <a
               href={OFFICIAL_EVENTS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-violet-300/90 underline decoration-violet-400/40 underline-offset-2 hover:text-violet-200"
             >
-              FTC Event Web
+              FTC Event Web (all events)
             </a>
-            , one row per event code per season. Use search to narrow; Analytics
-            opens this app with the correct season in the URL.
+            . Each <span className="text-white/55">FIRST</span> button opens that
+            row’s official page on firstinspires.org (
+            <span className="font-mono text-[11px] text-white/40">/season/code</span>
+            , not the list anchor). Analytics keeps you in this app with{" "}
+            <span className="font-mono text-[11px] text-white/40">?season=</span>.
           </p>
           {showApi && rowSources.length > MAX_TEAM_PAIR_LOOKUPS ? (
             <p className="mt-3 max-w-2xl text-xs text-white/35">

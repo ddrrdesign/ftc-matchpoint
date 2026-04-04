@@ -114,6 +114,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         href={r.firstWebUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        title={`Official FTC Event Web page: ${r.firstWebUrl}`}
                         className="rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-200/90 transition hover:bg-violet-500/18"
                       >
                         FIRST

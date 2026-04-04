@@ -1,14 +1,31 @@
 import type { SeasonEventModelV2 } from "./types";
 
-/** Public FTC Event Web URL for a season + event code (see ftc-events.firstinspires.org). */
-export function firstEventWebUrl(seasonYear: number, eventCode: string): string {
-  const c = encodeURIComponent(eventCode.trim());
-  return `https://ftc-events.firstinspires.org/${seasonYear}/${c}`;
+/**
+ * ftc-events.firstinspires.org paths use the hub year (e.g. `/2025/KZCMP` for DECODE
+ * 2025–26 — see [all events](https://ftc-events.firstinspires.org/#allevents)). The REST
+ * API `season` path may be the following calendar year (`2026`) for the same season;
+ * `/2026/KZCMP` 404s, so we map unless overridden.
+ */
+export function apiSeasonToFirstInspiresPathYear(apiSeasonYear: number): number {
+  const raw = process.env.FTC_EVENT_WEB_PATH_DELTA?.trim();
+  if (raw !== undefined && raw !== "") {
+    const delta = Number.parseInt(raw, 10);
+    if (!Number.isNaN(delta)) return apiSeasonYear + delta;
+  }
+  return apiSeasonYear >= 2026 ? apiSeasonYear - 1 : apiSeasonYear;
 }
 
-/** Link to season hub on FIRST Event Web. */
+/** Direct event page on FTC Event Web (not the #allevents list). */
+export function firstEventWebUrl(seasonYear: number, eventCode: string): string {
+  const y = apiSeasonToFirstInspiresPathYear(seasonYear);
+  const c = encodeURIComponent(eventCode.trim());
+  return `https://ftc-events.firstinspires.org/${y}/${c}`;
+}
+
+/** Season hub on FIRST Event Web (same path year as event pages). */
 export function firstSeasonHubUrl(seasonYear: number): string {
-  return `https://ftc-events.firstinspires.org/${seasonYear}`;
+  const y = apiSeasonToFirstInspiresPathYear(seasonYear);
+  return `https://ftc-events.firstinspires.org/${y}`;
 }
 
 /** API docs landing (v2.0 REST). */
