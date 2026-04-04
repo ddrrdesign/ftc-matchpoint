@@ -3,6 +3,7 @@ import "server-only";
 import { getFtcSeasonYear } from "./env";
 import { ftcGet } from "./client";
 import type {
+  AwardsModelV2,
   EventMatchResultsV2,
   EventRankingsModel,
   MatchResultModelV2,
@@ -27,6 +28,11 @@ export async function fetchRankings(season: number, eventCode: string) {
   return ftcGet<EventRankingsModel>(`/v2.0/${season}/rankings/${enc}`);
 }
 
+export async function fetchEventAwards(season: number, eventCode: string) {
+  const enc = encodeURIComponent(eventCode);
+  return ftcGet<AwardsModelV2>(`/v2.0/${season}/awards/${enc}`);
+}
+
 export async function fetchMatches(
   season: number,
   eventCode: string,
@@ -37,6 +43,44 @@ export async function fetchMatches(
   return ftcGet<EventMatchResultsV2>(
     `/v2.0/${season}/matches/${enc}?${q}`
   );
+}
+
+export async function fetchTeamCountAtEvent(
+  season: number,
+  eventCode: string
+): Promise<number | null> {
+  const q = new URLSearchParams({ eventCode, page: "1" });
+  const res = await ftcGet<SeasonTeamListingsV2>(
+    `/v2.0/${season}/teams?${q}`
+  );
+  if (!res?.ok) return null;
+  const t = res.data.teamCountTotal;
+  if (typeof t === "number" && t >= 0) return t;
+  const len = res.data.teams?.length;
+  return typeof len === "number" ? len : null;
+}
+
+/** Parallel team-count lookups (one page-1 request per code). */
+export async function fetchTeamCountsForEventCodes(
+  season: number,
+  codes: string[],
+  concurrency = 8
+): Promise<Map<string, number | null>> {
+  const out = new Map<string, number | null>();
+  if (codes.length === 0) return out;
+  let index = 0;
+  async function worker() {
+    while (true) {
+      const i = index++;
+      if (i >= codes.length) break;
+      const code = codes[i]!;
+      const n = await fetchTeamCountAtEvent(season, code);
+      out.set(code, n);
+    }
+  }
+  const workers = Math.min(concurrency, codes.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return out;
 }
 
 export async function fetchTeamsAtEvent(season: number, eventCode: string) {

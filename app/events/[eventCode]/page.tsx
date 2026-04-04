@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { EventDetailApi } from "@/components/events/event-detail-api";
+import type { EventDivisionSlice } from "@/components/events/event-detail-api";
 import { EventDetailMock } from "@/components/events/event-detail-mock";
 import { getEventByCode } from "@/lib/mock-data";
 import { isFtcApiConfigured, getFtcSeasonYear } from "@/lib/ftc-api/env";
 import {
   fetchAllMatchesForEvent,
+  fetchEventAwards,
   fetchRankings,
   fetchSingleEvent,
   fetchTeamsAtEvent,
@@ -27,21 +29,44 @@ export default async function EventDetailPage({ params }: Props) {
         ) ?? list[0];
       const code = ev?.code?.trim();
       if (code) {
-        const [rankingsRes, teams, matches] = await Promise.all([
-          fetchRankings(season, code),
+        const codes = [
+          ...new Set(
+            list
+              .map((e) => e.code?.trim())
+              .filter((c): c is string => Boolean(c))
+          ),
+        ];
+        if (codes.length === 0) {
+          codes.push(code);
+        } else if (!codes.includes(code)) {
+          codes.unshift(code);
+        }
+
+        const [teams, matches, ...perCode] = await Promise.all([
           fetchTeamsAtEvent(season, code),
           fetchAllMatchesForEvent(season, code),
+          ...codes.map(async (c) => {
+            const [r, a] = await Promise.all([
+              fetchRankings(season, c),
+              fetchEventAwards(season, c),
+            ]);
+            const meta =
+              list.find((e) => (e.code ?? "").trim() === c) ?? ev;
+            return {
+              code: c,
+              meta,
+              rankings: r?.ok ? r.data.rankings ?? [] : [],
+              awards: a?.ok ? a.data.awards ?? [] : [],
+            } satisfies EventDivisionSlice;
+          }),
         ]);
-        const rankings = rankingsRes?.ok
-          ? rankingsRes.data.rankings ?? []
-          : [];
 
         return (
           <EventDetailApi
             seasonYear={season}
             event={ev}
             eventCode={code}
-            rankings={rankings}
+            divisions={perCode}
             teams={teams}
             matches={matches}
           />

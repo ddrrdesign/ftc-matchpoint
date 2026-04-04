@@ -1,33 +1,31 @@
-import Link from "next/link";
+import { EventBrowseCard } from "@/components/events/event-browse-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MOCK_EVENTS } from "@/lib/mock-data";
-import type { Event, EventStatus } from "@/lib/types";
+import type { Event } from "@/lib/types";
 import { isFtcApiConfigured, getFtcSeasonYear } from "@/lib/ftc-api/env";
-import { fetchEventListings } from "@/lib/ftc-api/service";
-import type { SeasonEventModelV2 } from "@/lib/ftc-api/types";
 import {
-  deriveEventStatus,
-  formatEventLocation,
-  uiEventStatusLabel,
-} from "@/lib/ftc-api/event-status";
+  compareEventsByStartDesc,
+  dedupeEventsByCode,
+} from "@/lib/ftc-api/events-listing";
 import {
-  FIRST_FTC_API_DOCS_URL,
+  EVENT_REGION_FALLBACK,
+  eventRegionGroupKey,
+  eventRegionSectionTitle,
+  formatEventDateRange,
   formatEventTypeLine,
   formatEventVenueLine,
+  sortRegionGroupKeys,
 } from "@/lib/ftc-api/event-presentation";
+import { deriveEventStatus, formatEventLocation } from "@/lib/ftc-api/event-status";
+import {
+  fetchEventListings,
+  fetchTeamCountsForEventCodes,
+} from "@/lib/ftc-api/service";
+import type { SeasonEventModelV2 } from "@/lib/ftc-api/types";
 
-function statusStyles(s: EventStatus): string {
-  switch (s) {
-    case "live":
-      return "border-emerald-400/30 bg-emerald-500/12 text-emerald-200";
-    case "upcoming":
-      return "border-blue-400/25 bg-blue-500/12 text-blue-200";
-    case "completed":
-      return "border-white/15 bg-white/[0.06] text-white/65";
-  }
-}
+const MAX_TEAM_COUNT_LOOKUPS = 56;
 
 function filterMockEvents(q: string): Event[] {
   if (!q) return MOCK_EVENTS;
@@ -60,6 +58,32 @@ function filterApiEvents(
   });
 }
 
+function mockRegionGroupKey(e: Event): string {
+  const code = e.code.toUpperCase();
+  const name = e.name.toLowerCase();
+  const loc = e.location.toLowerCase();
+  if (code.includes("WORLD") || /^FTCCMP\d*/i.test(code)) {
+    return "__WORLDS__";
+  }
+  if (
+    (name.includes("first championship") ||
+      name.includes("world festival")) &&
+    (name.includes("houston") || name.includes("detroit"))
+  ) {
+    return "__WORLDS__";
+  }
+  if (loc.includes("kazakhstan")) return "Kazakhstan";
+  return EVENT_REGION_FALLBACK;
+}
+
+function mockDateRangeDisplay(e: Event): string | null {
+  if (!e.startDate?.trim()) return null;
+  return formatEventDateRange({
+    dateStart: e.startDate,
+    dateEnd: e.endDate,
+  });
+}
+
 type Props = {
   searchParams: Promise<{ q?: string | string[] }>;
 };
@@ -89,48 +113,78 @@ export default async function EventsPage({ searchParams }: Props) {
 
   const showApi = apiOn && apiRes?.ok && apiEvents.length > 0;
 
+  let teamCounts = new Map<string, number | null>();
+  let mergedForMetrics: ReturnType<typeof dedupeEventsByCode> = [];
+
+  if (showApi) {
+    mergedForMetrics = dedupeEventsByCode(filteredApi);
+    mergedForMetrics.sort((a, b) =>
+      compareEventsByStartDesc(a.event, b.event)
+    );
+    const codes = mergedForMetrics
+      .map((m) => m.event.code?.trim())
+      .filter((c): c is string => Boolean(c));
+    if (codes.length > 0 && codes.length <= MAX_TEAM_COUNT_LOOKUPS) {
+      teamCounts = await fetchTeamCountsForEventCodes(season, codes, 8);
+    }
+  }
+
+  const apiByRegion = new Map<
+    string,
+    ReturnType<typeof dedupeEventsByCode>
+  >();
+  if (showApi) {
+    for (const m of mergedForMetrics) {
+      const key = eventRegionGroupKey(m.event);
+      const arr = apiByRegion.get(key) ?? [];
+      arr.push(m);
+      apiByRegion.set(key, arr);
+    }
+  }
+  const apiRegionKeys = [...apiByRegion.keys()].sort(sortRegionGroupKeys);
+
+  const mockByRegion = new Map<string, Event[]>();
+  for (const e of filteredMock) {
+    const key = mockRegionGroupKey(e);
+    const arr = mockByRegion.get(key) ?? [];
+    arr.push(e);
+    mockByRegion.set(key, arr);
+  }
+  const mockRegionKeys = [...mockByRegion.keys()].sort(sortRegionGroupKeys);
+
   return (
     <PageShell>
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 md:py-16">
-        <div className="max-w-2xl">
+        <header className="max-w-2xl">
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-violet-300/55">
             Events
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
-            Browse FTC events
+            Season calendar
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-white/50">
+          <p className="mt-4 text-base leading-relaxed text-white/45">
             {showApi
-              ? "Live listings from FIRST FTC Events API. Search by name, code, or location."
-              : "Search sample listings below by name, code, or location."}
+              ? "Worlds is grouped on its own; everything else is filed under country (or region code when the API does not send a country). Each card shows the competition window and how many teams were on the roster when we could load that count."
+              : "Sample events so you can see the layout. Connect the FIRST API to pull your season."}
           </p>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/40">
-            Official schedules and registrations live on{" "}
-            <a
-              href="https://ftc-events.firstinspires.org/#allevents"
-              className="text-violet-300/90 underline hover:text-violet-200"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FTC Event Web
-            </a>
-            . API reference:{" "}
-            <a
-              href={FIRST_FTC_API_DOCS_URL}
-              className="text-violet-300/90 underline hover:text-violet-200"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              ftc-events.firstinspires.org/api-docs
-            </a>
-            .
-          </p>
-        </div>
+          {showApi &&
+          mergedForMetrics.length > 0 &&
+          mergedForMetrics.filter((m) => m.event.code?.trim()).length >
+            MAX_TEAM_COUNT_LOOKUPS ? (
+            <p className="mt-3 max-w-xl text-xs leading-relaxed text-white/35">
+              Team totals are fetched per event code. With more than{" "}
+              {MAX_TEAM_COUNT_LOOKUPS} distinct codes, cards show “—” for
+              teams—narrow the list with search to load counts.
+            </p>
+          ) : null}
+        </header>
 
         {apiError && (
           <GlassCard className="mt-8 border-red-400/20 bg-red-500/10 p-4 text-sm text-red-100/90">
-            <p className="font-medium">Could not load live events ({apiError.status})</p>
+            <p className="font-medium">
+              Could not load live events ({apiError.status})
+            </p>
             <p className="mt-2 text-red-200/70">
               Showing sample listings below.
             </p>
@@ -147,7 +201,7 @@ export default async function EventsPage({ searchParams }: Props) {
               name="q"
               type="search"
               defaultValue={q}
-              placeholder="Search by name, code, city…"
+              placeholder="Name, code, city, country…"
               className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none ring-violet-500/40 focus:border-violet-500/40 focus:ring-2"
             />
             <button
@@ -160,54 +214,51 @@ export default async function EventsPage({ searchParams }: Props) {
         </form>
 
         {showApi ? (
-          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-14 space-y-14">
             {filteredApi.length === 0 ? (
-              <p className="col-span-full text-white/50">
-                No events match “{q}”.
-              </p>
+              <p className="text-white/50">No events match “{q}”.</p>
             ) : (
-              filteredApi.map((e) => {
-                const code = e.code ?? "";
-                const st = deriveEventStatus(e);
-                const locLine = formatEventLocation(e);
-                const venueExtra = formatEventVenueLine(e);
+              apiRegionKeys.map((regionKey) => {
+                const slice = apiByRegion.get(regionKey) ?? [];
                 return (
-                  <GlassCard key={e.eventId ?? code} glow="violet" className="flex flex-col p-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-mono text-xs text-violet-300/70">
-                          {code || "-"}
-                        </p>
-                        <h2 className="mt-1 text-lg font-semibold leading-snug">
-                          {e.name ?? code}
-                        </h2>
-                        <p className="mt-1 text-sm text-white/45">
-                          {locLine}
-                        </p>
-                        {venueExtra && venueExtra !== locLine ? (
-                          <p className="mt-1 text-xs text-white/35">
-                            {venueExtra}
-                          </p>
-                        ) : null}
-                        <p className="mt-2 text-xs leading-relaxed text-violet-200/55">
-                          {formatEventTypeLine(e)}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusStyles(st)}`}
-                      >
-                        {uiEventStatusLabel(st)}
-                      </span>
+                  <section key={regionKey} className="scroll-mt-8">
+                    <div className="mb-6 border-b border-white/[0.08] pb-4">
+                      <h2 className="text-xl font-semibold tracking-tight text-white">
+                        {eventRegionSectionTitle(regionKey)}
+                      </h2>
+                      <p className="mt-1 text-sm text-white/38">
+                        {slice.length}{" "}
+                        {slice.length === 1 ? "competition" : "competitions"}
+                      </p>
                     </div>
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      <Link
-                        href={`/events/${encodeURIComponent(code)}`}
-                        className="inline-flex flex-1 items-center justify-center rounded-xl border border-white/12 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/[0.1]"
-                      >
-                        Open event
-                      </Link>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {slice.map((m) => {
+                        const e = m.event;
+                        const code = e.code?.trim() ?? "";
+                        const st = deriveEventStatus(e);
+                        const teamN = code ? teamCounts.get(code) ?? null : null;
+                        return (
+                          <EventBrowseCard
+                            key={code || e.eventId}
+                            code={code}
+                            name={(e.name ?? code).trim() || "Event"}
+                            locationLine={formatEventLocation(e)}
+                            venueLine={formatEventVenueLine(e)}
+                            typeLine={formatEventTypeLine(e)}
+                            dateRange={formatEventDateRange(e)}
+                            teamCount={teamN}
+                            divisionsNote={
+                              m.sourceRowCount > 1
+                                ? `${m.sourceRowCount} divisions · one schedule page`
+                                : null
+                            }
+                            status={st}
+                            href={`/events/${encodeURIComponent(code || "unknown")}`}
+                          />
+                        );
+                      })}
                     </div>
-                  </GlassCard>
+                  </section>
                 );
               })
             )}
@@ -217,66 +268,50 @@ export default async function EventsPage({ searchParams }: Props) {
         {!showApi || apiError ? (
           <>
             {!showApi && !apiError && (
-              <p className="mt-10 max-w-2xl text-sm leading-relaxed text-white/45">
-                Sample event listings (fictional teams for UI only). Configure{" "}
-                <span className="font-mono text-white/55">FTC_API_*</span> env
-                vars to pull real events from FIRST.
+              <p className="mt-10 max-w-xl text-sm text-white/40">
+                Set <span className="font-mono text-white/55">FTC_API_*</span>{" "}
+                environment variables to hydrate this view from FIRST.
               </p>
             )}
-            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 space-y-14">
               {filteredMock.length === 0 ? (
-                <p className="col-span-full text-white/50">
+                <p className="text-white/50">
                   No sample events match “{q}”.
                 </p>
               ) : (
-                filteredMock.map((e) => (
-                  <GlassCard key={e.id} glow="violet" className="flex flex-col p-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-mono text-xs text-violet-300/70">
-                          {e.code}
-                        </p>
-                        <h2 className="mt-1 text-lg font-semibold leading-snug">
-                          {e.name}
+                mockRegionKeys.map((regionKey) => {
+                  const slice = mockByRegion.get(regionKey) ?? [];
+                  return (
+                    <section key={regionKey} className="scroll-mt-8">
+                      <div className="mb-6 border-b border-white/[0.08] pb-4">
+                        <h2 className="text-xl font-semibold tracking-tight text-white">
+                          {eventRegionSectionTitle(regionKey)}
                         </h2>
-                        <p className="mt-1 text-sm text-white/45">
-                          {e.location}
+                        <p className="mt-1 text-sm text-white/38">
+                          {slice.length}{" "}
+                          {slice.length === 1 ? "competition" : "competitions"}
                         </p>
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusStyles(e.status)}`}
-                      >
-                        {uiEventStatusLabel(e.status)}
-                      </span>
-                    </div>
-                    <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                      <div className="rounded-xl border border-white/[0.06] bg-[#080612]/90 px-3 py-2.5">
-                        <p className="text-[11px] uppercase tracking-wider text-white/40">
-                          Teams
-                        </p>
-                        <p className="mt-0.5 font-semibold tabular-nums">
-                          {e.teamCount}
-                        </p>
+                      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {slice.map((e) => (
+                          <EventBrowseCard
+                            key={e.id}
+                            code={e.code}
+                            name={e.name}
+                            locationLine={e.location}
+                            venueLine={null}
+                            typeLine="Sample · FTC"
+                            dateRange={mockDateRangeDisplay(e)}
+                            teamCount={e.teamCount}
+                            divisionsNote={null}
+                            status={e.status}
+                            href={`/events/${encodeURIComponent(e.code)}`}
+                          />
+                        ))}
                       </div>
-                      <div className="rounded-xl border border-white/[0.06] bg-[#080612]/90 px-3 py-2.5">
-                        <p className="text-[11px] uppercase tracking-wider text-white/40">
-                          Matches
-                        </p>
-                        <p className="mt-0.5 font-semibold tabular-nums">
-                          {e.matchCount}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      <Link
-                        href={`/events/${encodeURIComponent(e.code)}`}
-                        className="inline-flex flex-1 items-center justify-center rounded-xl border border-white/12 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/[0.1]"
-                      >
-                        Open event
-                      </Link>
-                    </div>
-                  </GlassCard>
-                ))
+                    </section>
+                  );
+                })
               )}
             </div>
           </>

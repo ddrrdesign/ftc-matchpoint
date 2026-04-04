@@ -2,7 +2,9 @@ import Link from "next/link";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
+import { EventAwardsGrid, EventRankingsTable } from "@/components/events/event-rich-blocks";
 import type {
+  AwardAssignmentModelV2,
   MatchResultModelV2,
   SeasonEventModelV2,
   SeasonTeamModelV2,
@@ -45,20 +47,33 @@ function statusBadgeUi(s: ReturnType<typeof deriveEventStatus>) {
   );
 }
 
+export type EventDivisionSlice = {
+  code: string;
+  meta: SeasonEventModelV2;
+  rankings: TeamRankingModel[];
+  awards: AwardAssignmentModelV2[];
+};
+
 type Props = {
   seasonYear: number;
   event: SeasonEventModelV2;
   eventCode: string;
-  rankings: TeamRankingModel[];
+  divisions: EventDivisionSlice[];
   teams: SeasonTeamModelV2[];
   matches: MatchResultModelV2[];
 };
+
+function divisionLabel(d: EventDivisionSlice): string {
+  const div = d.meta.divisionCode?.trim();
+  if (div) return div;
+  return d.meta.name?.trim() || d.code;
+}
 
 export function EventDetailApi({
   seasonYear,
   event,
   eventCode,
-  rankings,
+  divisions,
   teams,
   matches,
 }: Props) {
@@ -79,10 +94,15 @@ export function EventDetailApi({
     const tb = new Date(b.actualStartTime ?? 0).getTime();
     return tb - ta;
   });
-  const latest = played.slice(0, 40);
+  const latest = played.slice(0, 50);
 
-  const statsMap = statsMapFromRankings(rankings);
-  const byRank = [...rankings]
+  const rankingsForPreview =
+    divisions.find((d) => d.rankings.length > 0)?.rankings ??
+    divisions[0]?.rankings ??
+    [];
+
+  const statsMap = statsMapFromRankings(rankingsForPreview);
+  const byRank = [...rankingsForPreview]
     .filter((r) => r.teamNumber != null)
     .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
   const n1 = byRank[0]?.teamNumber;
@@ -109,66 +129,99 @@ export function EventDetailApi({
     predBlue = w.blue;
   }
 
-  const topRankings = [...rankings]
-    .filter((r) => r.teamNumber != null)
-    .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
-    .slice(0, 8);
+  const totalRankRows = divisions.reduce((a, d) => a + d.rankings.length, 0);
+  const totalAwards = divisions.reduce((a, d) => a + d.awards.length, 0);
+  const multiDiv = divisions.length > 1;
 
   return (
     <PageShell>
       <SiteHeader />
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-14">
-        <div className="mb-8">
+        <div className="relative mb-10 overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-950/50 via-[#0a0614] to-[#05030a] p-6 shadow-[0_0_80px_-30px_rgba(139,92,246,0.45)] sm:p-8">
+          <div
+            className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-fuchsia-500/20 blur-3xl"
+            aria-hidden
+          />
           <Link
             href="/events"
-            className="text-sm text-violet-300/80 hover:text-violet-200"
+            className="relative text-sm text-violet-300/80 hover:text-violet-200"
           >
             ← All events
           </Link>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="relative mt-4 flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
               {name}
             </h1>
             {statusBadgeUi(status)}
           </div>
-          <p className="mt-2 font-mono text-sm text-violet-300/70">
+          <p className="relative mt-2 font-mono text-sm text-violet-300/70">
             {event.code ?? eventCode}
             {event.divisionCode ? (
               <span className="text-white/40"> · {event.divisionCode}</span>
             ) : null}
           </p>
-          <p className="mt-1 text-white/50">{location}</p>
+          {event.regionCode ? (
+            <p className="relative mt-1 text-xs uppercase tracking-wider text-white/40">
+              Region {event.regionCode}
+            </p>
+          ) : null}
+          <p className="relative mt-2 text-lg text-white/70">{location}</p>
+          {event.address?.trim() ? (
+            <p className="relative mt-1 text-sm text-white/45">
+              {event.address}
+            </p>
+          ) : null}
           {venueLine && venueLine !== location ? (
-            <p className="mt-1 text-sm text-white/40">
+            <p className="relative mt-1 text-sm text-white/40">
               <span className="text-white/30">Venue: </span>
               {venueLine}
             </p>
           ) : null}
-          <p className="mt-2 text-sm text-violet-200/70">{typeLine}</p>
+          <p className="relative mt-3 text-sm text-violet-200/75">{typeLine}</p>
           {formatChips.length > 0 ? (
-            <p className="mt-2 flex flex-wrap gap-2">
+            <p className="relative mt-2 flex flex-wrap gap-2">
               {formatChips.map((c) => (
                 <span
                   key={c}
-                  className="rounded-full border border-white/15 bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-white/60"
+                  className="rounded-full border border-white/15 bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/65"
                 >
                   {c}
                 </span>
               ))}
             </p>
           ) : null}
-          <div className="mt-4 flex flex-wrap gap-3 text-sm">
+          <div className="relative mt-5 flex flex-wrap gap-2.5 text-sm">
             <a
               href={firstEventWebUrl(seasonYear, eventCode)}
-              className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-1.5 text-emerald-200/95 hover:bg-emerald-500/20"
+              className="rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 font-medium text-emerald-100 hover:bg-emerald-500/25"
               target="_blank"
               rel="noopener noreferrer"
             >
               FIRST Event Web ↗
             </a>
+            {event.liveStreamUrl?.trim() ? (
+              <a
+                href={event.liveStreamUrl}
+                className="rounded-xl border border-red-400/30 bg-red-500/15 px-4 py-2 font-medium text-red-100 hover:bg-red-500/25"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Live stream ↗
+              </a>
+            ) : null}
+            {event.website?.trim() ? (
+              <a
+                href={event.website}
+                className="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 text-white/80 hover:bg-white/[0.1]"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Event website ↗
+              </a>
+            ) : null}
             <a
               href={firstSeasonHubUrl(seasonYear)}
-              className="rounded-xl border border-white/10 px-3 py-1.5 text-white/55 hover:bg-white/[0.06]"
+              className="rounded-xl border border-white/10 px-4 py-2 text-white/60 hover:bg-white/[0.06]"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -176,7 +229,7 @@ export function EventDetailApi({
             </a>
             <a
               href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
-              className="rounded-xl border border-violet-400/25 bg-violet-500/10 px-3 py-1.5 text-violet-200/95 hover:bg-violet-500/20"
+              className="rounded-xl border border-violet-400/25 bg-violet-500/15 px-4 py-2 text-violet-100 hover:bg-violet-500/25"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -184,15 +237,15 @@ export function EventDetailApi({
             </a>
             <a
               href={FIRST_FTC_API_DOCS_URL}
-              className="rounded-xl border border-white/10 px-3 py-1.5 text-white/55 hover:bg-white/[0.06]"
+              className="rounded-xl border border-white/10 px-4 py-2 text-white/55 hover:bg-white/[0.06]"
               target="_blank"
               rel="noopener noreferrer"
             >
               API docs ↗
             </a>
           </div>
-          <p className="mt-3 max-w-2xl text-xs leading-relaxed text-white/40">
-            Matches and scores below are loaded from the{" "}
+          <p className="relative mt-4 max-w-2xl text-xs leading-relaxed text-white/40">
+            Data below is loaded from the{" "}
             <a
               href={FIRST_FTC_API_DOCS_URL}
               className="text-violet-400/90 underline"
@@ -201,8 +254,8 @@ export function EventDetailApi({
             >
               FIRST FTC Events API
             </a>
-            . OPR-style scouting, detailed awards, and community breakdowns are
-            usually richer on{" "}
+            : qualification rankings, awards, matches, and team list. OPR and
+            community analytics are often deeper on{" "}
             <a
               href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
               className="text-violet-400/90 underline"
@@ -210,8 +263,8 @@ export function EventDetailApi({
               rel="noopener noreferrer"
             >
               FTC Scout
-            </a>{" "}
-            for the same event code.
+            </a>
+            .
           </p>
         </div>
 
@@ -226,7 +279,7 @@ export function EventDetailApi({
               ["#teams", "Teams"],
               ["#insights", "Insights"],
               ["#awards", "Awards"],
-              ["#links", "Links"],
+              ["#links", "Streams"],
             ] as const
           ).map(([href, label]) => (
             <a key={href} href={href} className="hover:text-violet-200">
@@ -235,19 +288,28 @@ export function EventDetailApi({
           ))}
         </nav>
 
-        <div className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {[
             { k: "Teams", v: teams.length },
-            { k: "Matches (loaded)", v: matches.length },
-            { k: "Played w/ time", v: played.length },
-            { k: "Ranked", v: rankings.length },
-            { k: "Type", v: event.typeName ?? event.type ?? "-" },
+            { k: "Matches loaded", v: matches.length },
+            { k: "Played (timed)", v: played.length },
+            { k: "Ranking rows", v: totalRankRows },
+            { k: "Awards", v: totalAwards },
+            {
+              k: "Divisions",
+              v: multiDiv ? divisions.length : 1,
+            },
           ].map((x) => (
-            <GlassCard key={x.k} className="p-5">
+            <GlassCard
+              key={x.k}
+              className="border-white/[0.06] bg-gradient-to-b from-white/[0.05] to-transparent p-5"
+            >
               <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">
                 {x.k}
               </p>
-              <p className="mt-2 text-2xl font-semibold tabular-nums">{x.v}</p>
+              <p className="mt-2 text-2xl font-semibold tabular-nums text-white/95">
+                {x.v}
+              </p>
             </GlassCard>
           ))}
         </div>
@@ -255,7 +317,7 @@ export function EventDetailApi({
         <section id="matches" className="mb-14 scroll-mt-28">
           <h2 className="text-xl font-semibold">Matches</h2>
           <p className="mt-1 text-sm text-white/45">
-            Recent completed matches from the FIRST API (newest first).
+            Completed matches from the FIRST API (newest first, up to 50).
           </p>
           <GlassCard className="mt-4 overflow-hidden p-0">
             <div className="grid grid-cols-[1fr_1fr_1fr_0.9fr_0.65fr] border-b border-white/[0.07] bg-white/[0.03] px-4 py-3 text-[10px] uppercase tracking-[0.15em] text-white/40 md:px-6">
@@ -274,8 +336,7 @@ export function EventDetailApi({
                 const { red, blue } = teamsToAlliances(m.teams);
                 const rf = m.scoreRedFinal ?? 0;
                 const bf = m.scoreBlueFinal ?? 0;
-                const win =
-                  rf > bf ? "red" : bf > rf ? "blue" : null;
+                const win = rf > bf ? "red" : bf > rf ? "blue" : null;
                 return (
                   <Link
                     key={`${m.tournamentLevel}-${m.series}-${m.matchNumber}-${i}`}
@@ -317,52 +378,48 @@ export function EventDetailApi({
         </section>
 
         <section id="rankings" className="mb-14 scroll-mt-28">
-          <h2 className="text-xl font-semibold">Rankings</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {topRankings.length === 0 ? (
-              <p className="text-sm text-white/45">No rankings published yet.</p>
-            ) : (
-              topRankings.map((r) => (
-                <GlassCard key={r.teamNumber} className="p-4">
-                  <span className="text-white/45">#{r.rank}</span>
-                  <p className="mt-2 font-mono text-lg font-medium">
-                    {r.teamNumber}
-                  </p>
-                  <p className="truncate text-sm text-white/55">{r.teamName}</p>
-                  <p className="text-sm text-white/45">
-                    Qual avg{" "}
-                    <span className="tabular-nums text-white/80">
-                      {r.qualAverage?.toFixed(1) ?? "-"}
-                    </span>
-                  </p>
-                </GlassCard>
-              ))
-            )}
+          <h2 className="text-xl font-semibold">Qualification rankings</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
+            Full qualification table from FIRST (per division when the API
+            returns multiple event codes for this championship).
+          </p>
+          <div className="mt-6 space-y-10">
+            {divisions.map((d) => (
+              <div key={d.code}>
+                <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-lg font-medium text-white/90">
+                    {divisionLabel(d)}
+                  </h3>
+                  <span className="font-mono text-xs text-white/40">
+                    {d.code}
+                  </span>
+                </div>
+                <EventRankingsTable
+                  rankings={d.rankings}
+                  divisionTitle={divisionLabel(d)}
+                />
+              </div>
+            ))}
           </div>
         </section>
 
         <section id="teams" className="mb-14 scroll-mt-28">
           <h2 className="text-xl font-semibold">Teams</h2>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
-            Registered for this event per{" "}
-            <a
-              href={FIRST_FTC_API_DOCS_URL}
-              className="text-violet-300/90 underline hover:text-violet-200"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FIRST FTC Events API
-            </a>
-            . Open a number for Scout stats when available.
+            Registered for this event code per FIRST team list API. Tap a number
+            for Scout stats when available.
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {teams.slice(0, 48).map((t) => (
+            {teams.slice(0, 72).map((t) => (
               <Link key={t.teamNumber} href={`/teams/${t.teamNumber}`}>
-                <GlassCard glow="violet" className="h-full p-4 transition hover:bg-white/[0.06]">
-                  <p className="font-mono text-lg font-semibold">
+                <GlassCard
+                  glow="violet"
+                  className="h-full border-white/[0.07] p-4 transition hover:border-violet-400/30 hover:bg-white/[0.06]"
+                >
+                  <p className="font-mono text-lg font-semibold text-violet-100">
                     {t.teamNumber}
                   </p>
-                  <p className="line-clamp-2 text-sm font-medium text-white/75">
+                  <p className="line-clamp-2 text-sm font-medium text-white/80">
                     {t.nameShort ?? t.nameFull ?? "-"}
                   </p>
                   {t.nameFull &&
@@ -381,9 +438,9 @@ export function EventDetailApi({
               </Link>
             ))}
           </div>
-          {teams.length > 48 && (
+          {teams.length > 72 && (
             <p className="mt-3 text-sm text-white/45">
-              Showing 48 of {teams.length} teams.
+              Showing 72 of {teams.length} teams.
             </p>
           )}
         </section>
@@ -391,19 +448,9 @@ export function EventDetailApi({
         <section id="insights" className="mb-14 scroll-mt-28">
           <h2 className="text-xl font-semibold">Insights</h2>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
-            Quick alliance preview: we treat rank #1 and #2 as Red, #3 and #4 as
-            Blue, build simple strength from qual averages in the API, then run
-            the same logistic as the home demo. For real scouting depth, pair
-            this with{" "}
-            <a
-              href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
-              className="text-violet-300/90 underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FTC Scout
-            </a>{" "}
-            event pages.
+            Toy preview: ranks #1–#2 vs #3–#4 on the first division that has
+            rankings, using qual average as strength — same logistic as the home
+            demo. Not a replacement for real scouting.
           </p>
           <GlassCard glow="violet" className="mt-6 p-6 md:p-8">
             <div className="grid gap-6 md:grid-cols-2">
@@ -439,35 +486,86 @@ export function EventDetailApi({
 
         <section id="awards" className="mb-14 scroll-mt-28">
           <h2 className="text-xl font-semibold">Awards</h2>
-          <GlassCard className="mt-4 p-4 text-sm text-white/55">
-            Award results are not in the FIRST Events API feed used here. Open
-            the event on{" "}
-            <a
-              href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
-              className="text-violet-300 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FTC Scout
-            </a>{" "}
-            for Inspire, Think, and other awards.
-          </GlassCard>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
+            From{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 text-xs">
+              /v2.0/&#123;season&#125;/awards/&#123;eventCode&#125;
+            </code>{" "}
+            — Inspire, Think, Connect, Dean’s List, and other official winners.
+          </p>
+          <div className="mt-6 space-y-10">
+            {divisions.map((d) => (
+              <div key={`aw-${d.code}`}>
+                {multiDiv ? (
+                  <h3 className="mb-4 text-lg font-medium text-white/90">
+                    {divisionLabel(d)}{" "}
+                    <span className="font-mono text-sm font-normal text-white/40">
+                      ({d.code})
+                    </span>
+                  </h3>
+                ) : null}
+                <EventAwardsGrid awards={d.awards} />
+              </div>
+            ))}
+          </div>
         </section>
 
         <section id="links" className="scroll-mt-28">
-          <h2 className="text-xl font-semibold">Streams & links</h2>
-          <GlassCard className="mt-4 p-4 text-sm text-white/65">
-            For past events, match videos and streams are often linked from the
-            event page on{" "}
-            <a
-              href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
-              className="text-violet-300 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FTC Scout
-            </a>
-            . FIRST does not expose a single canonical stream URL in this API.
+          <h2 className="text-xl font-semibold">Streams & extra links</h2>
+          <GlassCard className="mt-4 space-y-3 p-5 text-sm text-white/65">
+            {event.liveStreamUrl?.trim() ? (
+              <p>
+                <span className="text-white/45">Primary stream: </span>
+                <a
+                  href={event.liveStreamUrl}
+                  className="text-violet-300 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {event.liveStreamUrl}
+                </a>
+              </p>
+            ) : null}
+            {event.webcasts?.length ? (
+              <ul className="list-inside list-disc space-y-1 text-white/55">
+                {event.webcasts.map((w) => (
+                  <li key={w}>
+                    <a
+                      href={w}
+                      className="text-violet-300 hover:underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {w}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {!event.liveStreamUrl?.trim() &&
+            (!event.webcasts || event.webcasts.length === 0) ? (
+              <p>
+                No stream URLs in this API payload — check{" "}
+                <a
+                  href={firstEventWebUrl(seasonYear, eventCode)}
+                  className="text-violet-300 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  FIRST Event Web
+                </a>{" "}
+                or{" "}
+                <a
+                  href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
+                  className="text-violet-300 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  FTC Scout
+                </a>
+                .
+              </p>
+            ) : null}
           </GlassCard>
         </section>
       </main>

@@ -7,12 +7,19 @@ export interface SeasonEventModelV2 {
   name?: string | null;
   remote?: boolean;
   hybrid?: boolean;
+  fieldCount?: number;
   type?: string | null;
   typeName?: string | null;
+  regionCode?: string | null;
   venue?: string | null;
+  address?: string | null;
   city?: string | null;
   stateprov?: string | null;
   country?: string | null;
+  website?: string | null;
+  liveStreamUrl?: string | null;
+  webcasts?: string[] | null;
+  timezone?: string | null;
   dateStart?: string;
   dateEnd?: string;
   published?: boolean;
@@ -26,12 +33,21 @@ export interface SeasonEventListingsV2 {
 export interface TeamRankingModel {
   rank?: number;
   teamNumber?: number;
+  displayTeamNumber?: string | null;
   teamName?: string | null;
+  sortOrder1?: number;
+  sortOrder2?: number;
+  sortOrder3?: number;
+  sortOrder4?: number;
+  sortOrder5?: number;
+  sortOrder6?: number;
   qualAverage?: number;
   wins?: number;
   losses?: number;
   ties?: number;
   matchesPlayed?: number;
+  matchesCounted?: number;
+  dq?: number;
 }
 
 export interface EventRankingsModel {
@@ -75,4 +91,22 @@ export interface SeasonTeamListingsV2 {
   teamCountPage?: number;
   pageCurrent?: number;
   pageTotal?: number;
+}
+
+/** `/v2.0/{season}/awards/{eventCode}` */
+export interface AwardAssignmentModelV2 {
+  awardId?: number;
+  teamId?: number | null;
+  teamNumber?: number | null;
+  name?: string | null;
+  series?: number;
+  schoolName?: string | null;
+  fullTeamName?: string | null;
+  person?: string | null;
+  eventCode?: string | null;
+  eventDivisionId?: number | null;
+}
+
+export interface AwardsModelV2 {
+  awards?: AwardAssignmentModelV2[] | null;
 }
