@@ -3,21 +3,51 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TeamScoutStatCard } from "@/components/matchup/team-scout-stat-card";
-import type { QuickStats, ScoutTeam, TeamEventParticipation } from "@/lib/ftc-scout/types";
+import type {
+  QuickStats,
+  ScoutEventListItem,
+  ScoutTeam,
+  TeamEventParticipation,
+} from "@/lib/ftc-scout/types";
 import { maxOprTotalNp } from "@/lib/ftc-scout/queries";
+
+const MAX_RECENT_EVENTS = 12;
+
+function catalogLookup(catalog: ScoutEventListItem[]) {
+  const map = new Map<string, ScoutEventListItem>();
+  for (const e of catalog) {
+    const k = `${e.season}:${(e.code ?? "").trim().toLowerCase()}`;
+    if (!map.has(k)) map.set(k, e);
+  }
+  return (season: number, code: string) =>
+    map.get(`${season}:${code.trim().toLowerCase()}`);
+}
 
 type Props = {
   team: ScoutTeam;
   stats: QuickStats;
   events: TeamEventParticipation[];
+  eventCatalog: ScoutEventListItem[];
 };
 
-export function TeamScoutDetail({ team, stats, events }: Props) {
+export function TeamScoutDetail({ team, stats, events, eventCatalog }: Props) {
   const bestOpr = maxOprTotalNp(events);
+  const lookup = catalogLookup(eventCatalog);
 
-  const ranked = events
-    .filter((e) => e.stats?.rank != null)
-    .sort((a, b) => (a.stats?.rank ?? 999) - (b.stats?.rank ?? 999));
+  const recentRows = [...events]
+    .map((p) => {
+      const meta = lookup(p.season, p.eventCode);
+      const start = meta?.start?.trim() ?? "";
+      const name = meta?.name?.trim() || null;
+      return { p, start, name };
+    })
+    .sort((a, b) => {
+      if (a.start && b.start) return b.start.localeCompare(a.start);
+      if (a.start) return -1;
+      if (b.start) return 1;
+      return (b.p.eventCode ?? "").localeCompare(a.p.eventCode ?? "");
+    })
+    .slice(0, MAX_RECENT_EVENTS);
 
   return (
     <PageShell>
@@ -56,25 +86,35 @@ export function TeamScoutDetail({ team, stats, events }: Props) {
         </div>
 
         <section className="mt-14">
-          <h2 className="text-xl font-semibold">Events</h2>
+          <h2 className="text-xl font-semibold">Recent events</h2>
           <p className="mt-1 text-sm text-white/45">
-            From FTC Scout - use this to see how a team trended across
-            qualifiers.
+            Up to {MAX_RECENT_EVENTS} most recent competitions by start date on
+            FTC Scout (not by rank). Names come from the event catalog; code
+            shown small for reference.
           </p>
           <div className="mt-4 space-y-2">
-            {ranked.length === 0 ? (
+            {events.length === 0 ? (
               <GlassCard className="p-4 text-sm text-white/50">
-                No ranked event stats in API response yet.
+                No event participation in Scout for this season yet.
               </GlassCard>
             ) : (
-              ranked.map((e) => (
-                <GlassCard key={e.eventCode} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                  <div>
-                    <p className="font-mono text-sm text-violet-200/90">
-                      {e.eventCode}
+              recentRows.map(({ p: e, name, start }) => (
+                <GlassCard
+                  key={`${e.season}-${e.eventCode}`}
+                  className="flex flex-wrap items-center justify-between gap-3 p-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium leading-snug text-white/90">
+                      {name ?? e.eventCode}
+                    </p>
+                    {start ? (
+                      <p className="mt-0.5 text-xs text-white/38">{start}</p>
+                    ) : null}
+                    <p className="mt-1 font-mono text-xs text-white/40">
+                      {name ? `${e.eventCode} · ` : ""}season {e.season}
                     </p>
                     {e.stats?.opr?.totalPointsNp != null && (
-                      <p className="text-xs text-white/45">
+                      <p className="mt-1 text-xs text-white/45">
                         Event OPR (NP):{" "}
                         <span className="font-mono text-white/70">
                           {e.stats.opr.totalPointsNp.toFixed(1)}
@@ -82,9 +122,11 @@ export function TeamScoutDetail({ team, stats, events }: Props) {
                       </p>
                     )}
                   </div>
-                  <span className="text-sm text-white/55">
-                    Rank #{e.stats?.rank ?? "-"}
-                  </span>
+                  {e.stats?.rank != null ? (
+                    <span className="shrink-0 text-sm tabular-nums text-white/55">
+                      Qual rank #{e.stats.rank}
+                    </span>
+                  ) : null}
                 </GlassCard>
               ))
             )}

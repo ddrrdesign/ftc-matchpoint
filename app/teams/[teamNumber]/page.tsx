@@ -15,6 +15,7 @@ import { fetchTeamByNumber } from "@/lib/ftc-api/service";
 import { getFtcScoutSeason } from "@/lib/ftc-scout/env";
 import {
   fetchQuickStats,
+  fetchScoutEventsSearch,
   fetchScoutTeam,
   fetchTeamEvents,
 } from "@/lib/ftc-scout/queries";
@@ -27,10 +28,11 @@ export default async function TeamDetailPage({ params }: Props) {
   if (Number.isNaN(n)) notFound();
 
   const season = getFtcScoutSeason();
-  const [scoutTeam, scoutQs, scoutEv] = await Promise.all([
+  const [scoutTeam, scoutQs, scoutEv, catalogRes] = await Promise.all([
     fetchScoutTeam(n),
     fetchQuickStats(n, season),
     fetchTeamEvents(n, season),
+    fetchScoutEventsSearch(season),
   ]);
 
   if (scoutTeam.ok && scoutQs.ok) {
@@ -39,6 +41,7 @@ export default async function TeamDetailPage({ params }: Props) {
         team={scoutTeam.data}
         stats={scoutQs.data}
         events={scoutEv.ok ? scoutEv.data : []}
+        eventCatalog={catalogRes.ok ? catalogRes.data : []}
       />
     );
   }

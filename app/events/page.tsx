@@ -3,11 +3,7 @@ import {
   EventBrowseList,
   type EventBrowseListRow,
 } from "@/components/events/event-browse-list";
-import {
-  EventsCategoryHub,
-  eventsToHubPreviewRows,
-  sliceHubPreview,
-} from "@/components/events/events-category-hub";
+import { EventsCategoryHub } from "@/components/events/events-category-hub";
 import { SeasonYearFilter } from "@/components/events/season-year-filter";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
@@ -741,18 +737,9 @@ export default async function EventsPage({ searchParams }: Props) {
         <EventsCategoryHub
           q={q}
           activeView={view}
-          past={{
-            preview: sliceHubPreview(eventsToHubPreviewRows(pastRows)),
-            total: pastRows.length,
-          }}
-          premier={{
-            preview: sliceHubPreview(eventsToHubPreviewRows(premierRows)),
-            total: premierRows.length,
-          }}
-          worlds={{
-            preview: sliceHubPreview(eventsToHubPreviewRows(worldsRows)),
-            total: worldsRows.length,
-          }}
+          past={{ total: pastRows.length }}
+          premier={{ total: premierRows.length }}
+          worlds={{ total: worldsRows.length }}
         />
 
         {view ? (
