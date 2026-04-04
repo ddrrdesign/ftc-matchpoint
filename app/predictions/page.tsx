@@ -127,14 +127,14 @@ export default async function PredictionsPage({
               <>
                 {" "}
                 <span className="text-amber-200/90">
-                  Event mode needs API keys on the server — see the setup block below (
+                  Event mode needs API keys on the server — see the setup section on{" "}
                   <a
                     href="#first-api-setup"
                     className="underline hover:text-amber-100"
                   >
-                    на русском, на этой странице
+                    this page
                   </a>
-                  ).
+                  .
                 </span>
               </>
             ) : null}
@@ -181,8 +181,8 @@ export default async function PredictionsPage({
                   Overall analysis
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/45">
-                  Четыре номера команд (по одному в поле), данные FTC Scout, не привязано к
-                  одному ивенту. Нажми, чтобы открыть форму и результат.
+                  Four team numbers (one per field), FTC Scout data, not tied to a single
+                  event. Expand to open the form and results.
                 </p>
               </div>
               <span
@@ -214,8 +214,8 @@ export default async function PredictionsPage({
                   Event analysis
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/45">
-                  Каталог ивентов сезона FIRST API, предикт по ростеру и матчам площадки.
-                  Нажми, чтобы открыть поиск и список.
+                  FIRST API season event catalog; predictions from roster and field match
+                  history. Expand to open search and the list.
                 </p>
               </div>
               <span
@@ -229,51 +229,51 @@ export default async function PredictionsPage({
               {!apiOn ? (
                 <div className="mt-2 max-w-2xl space-y-3 rounded-2xl border border-amber-400/20 bg-amber-500/[0.07] p-5 text-sm text-amber-50/95">
                   <p className="font-medium text-amber-100">
-                    FIRST API не настроен на сервере
+                    FIRST API is not configured on the server
                   </p>
                   <FirstApiSetupPointer />
                   <p className="text-amber-100/75">
-                    Режим <strong className="font-medium text-amber-50">Overall</strong>{" "}
-                    выше доступен через FTC Scout без этих ключей.
+                    <strong className="font-medium text-amber-50">Overall</strong> mode
+                    above still works via FTC Scout without these keys.
                   </p>
                 </div>
               ) : allSeasonEvents.length === 0 ? (
                 <GlassCard className="mt-2 max-w-2xl border-white/[0.08] bg-white/[0.03] p-6 text-center">
                   <p className="text-lg font-medium text-white/85">
-                    Нет ивентов в каталоге
+                    No events in the catalog
                   </p>
                   <p className="mt-2 text-sm text-white/45">
-                    API вернул пустой список для выбранных сезонов. Проверьте{" "}
+                    The API returned an empty list for the selected seasons. Check{" "}
                     <span className="font-mono">FTC_SEASON_YEAR</span> /{" "}
-                    <span className="font-mono">FTC_PREDICTIONS_API_SEASONS</span> и
-                    страницу{" "}
+                    <span className="font-mono">FTC_PREDICTIONS_API_SEASONS</span> and
+                    the{" "}
                     <Link href="/events" className="text-violet-300 hover:underline">
                       Events
-                    </Link>
-                    .
+                    </Link>{" "}
+                    page.
                   </p>
                 </GlassCard>
               ) : eventRows.length === 0 ? (
                 <GlassCard className="mt-2 max-w-2xl border-white/[0.08] bg-white/[0.03] p-6 text-center">
                   <p className="text-lg font-medium text-white/85">
-                    Ничего не найдено
+                    No matches
                   </p>
                   <p className="mt-2 text-sm text-white/45">
-                    По запросу «{eventQuery}» нет совпадений среди{" "}
-                    {allSeasonEvents.length.toLocaleString()} ивентов. Очистите поиск или
-                    уточните название / код / город.
+                    No results for “{eventQuery}” among{" "}
+                    {allSeasonEvents.length.toLocaleString("en-US")} events. Clear the
+                    search or refine name / code / city.
                   </p>
                 </GlassCard>
               ) : (
                 <>
                   <p className="mb-4 max-w-2xl text-sm leading-relaxed text-white/40">
-                    Сезон
+                    Season
                     {catalogSeasons.length > 1
-                      ? `ы: ${catalogSeasons.map((y) => formatFtcSeasonRangeLabel(y)).join(", ")}`
+                      ? `s: ${catalogSeasons.map((y) => formatFtcSeasonRangeLabel(y)).join(", ")}`
                       : `: ${formatFtcSeasonRangeLabel(
                           catalogSeasons[0] ?? getFtcSeasonYear()
                         )}`}
-                    . Календари:{" "}
+                    . Calendars:{" "}
                     <a
                       href={FTC_EVENTS_HOME}
                       className="text-violet-300/85 underline"
@@ -300,12 +300,12 @@ export default async function PredictionsPage({
                   >
                     {hiddenOverallFields(sp)}
                     <label className="min-w-0 flex-1">
-                      <span className="sr-only">Поиск ивента</span>
+                      <span className="sr-only">Search events</span>
                       <input
                         type="search"
                         name="q"
                         defaultValue={eventQuery}
-                        placeholder="Название, код, город…"
+                        placeholder="Name, code, city…"
                         className="w-full min-h-12 rounded-xl border border-white/[0.12] bg-white/[0.06] px-4 py-3 text-base text-white placeholder:text-white/35 outline-none focus:border-violet-400/40"
                         autoComplete="off"
                       />
@@ -315,22 +315,22 @@ export default async function PredictionsPage({
                         type="submit"
                         className="min-h-12 touch-manipulation rounded-xl bg-violet-500/90 px-5 text-sm font-medium text-white hover:bg-violet-500"
                       >
-                        Найти
+                        Search
                       </button>
                       {eventQuery ? (
                         <Link
                           href={resetEventSearchHref(sp)}
                           className="inline-flex min-h-12 items-center touch-manipulation rounded-xl border border-white/[0.15] px-4 text-sm text-white/70 hover:bg-white/[0.06]"
                         >
-                          Сброс
+                          Clear
                         </Link>
                       ) : null}
                     </div>
                   </form>
                   <p className="mt-3 text-xs text-white/38">
-                    Показано {eventRows.length.toLocaleString()} из{" "}
-                    {allSeasonEvents.length.toLocaleString()} ивентов
-                    {eventQuery ? ` · запрос «${eventQuery}»` : ""}
+                    Showing {eventRows.length.toLocaleString("en-US")} of{" "}
+                    {allSeasonEvents.length.toLocaleString("en-US")} events
+                    {eventQuery ? ` · query “${eventQuery}”` : ""}
                   </p>
                   <ul className="mt-6 grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                     {eventRows.map((ev) => {

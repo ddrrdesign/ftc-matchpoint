@@ -30,22 +30,22 @@ export function FirstApiSetupGuide() {
     >
       <GlassCard className="max-w-3xl border-amber-400/20 bg-gradient-to-br from-amber-500/[0.08] to-transparent p-5 sm:p-7">
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-amber-200/70">
-          Настройка сервера
+          Server setup
         </p>
         <h2
           id="first-api-setup-title"
           className="mt-2 text-xl font-semibold text-amber-50 sm:text-2xl"
         >
-          Как подключить FIRST Events API к этому сайту
+          How to connect the FIRST Events API to this site
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-amber-100/88">
-          Режим <strong className="font-medium text-amber-50">Event analysis</strong> и
-          каталог ивентов на{" "}
+          <strong className="font-medium text-amber-50">Event analysis</strong> mode and
+          the event catalog on the{" "}
           <Link href="/events" className="text-amber-200 underline hover:text-amber-100">
-            странице Events
+            Events
           </Link>{" "}
-          берут данные только с вашего сервера (Vercel / Node). Ключи в браузере не
-          вводятся — их задают в переменных окружения.
+          page load data only from your server (Vercel / Node). Credentials are not
+          entered in the browser — set them in environment variables.
         </p>
 
         <ol className="mt-6 space-y-5 text-sm leading-relaxed text-amber-50/95">
@@ -54,11 +54,11 @@ export function FirstApiSetupGuide() {
               1
             </span>
             <div className="min-w-0">
-              <p className="font-medium text-amber-50">Получите логин и ключ API</p>
+              <p className="font-medium text-amber-50">Get API username and key</p>
               <p className="mt-1.5 text-amber-100/80">
-                Зарегистрируйте доступ в экосистеме FIRST для FTC Events API (пара{" "}
-                <strong className="font-normal text-amber-100">username + key</strong>
-                ). Официальная точка входа и правила использования:
+                Register access in the FIRST ecosystem for the FTC Events API (a{" "}
+                <strong className="font-normal text-amber-100">username + key</strong>{" "}
+                pair). Official entry point and usage rules:
               </p>
               <ul className="mt-2 space-y-1.5 text-amber-100/75">
                 <li>
@@ -79,7 +79,7 @@ export function FirstApiSetupGuide() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Документация REST API v2.0
+                    REST API v2.0 documentation
                   </a>
                 </li>
                 <li>
@@ -91,7 +91,7 @@ export function FirstApiSetupGuide() {
                   >
                     OpenAPI (Swagger) v2.0
                   </a>{" "}
-                  — схемы запросов и ответов
+                  — request and response schemas
                 </li>
               </ul>
             </div>
@@ -103,35 +103,43 @@ export function FirstApiSetupGuide() {
             </span>
             <div className="min-w-0">
               <p className="font-medium text-amber-50">
-                Добавьте переменные в хостинг (например Vercel)
+                Add variables to your host (e.g. Vercel)
               </p>
               <p className="mt-1.5 text-amber-100/80">
-                В панели проекта:{" "}
+                In the project dashboard:{" "}
                 <strong className="font-normal text-amber-100">
                   Settings → Environment Variables
                 </strong>
-                . Создайте как минимум:
+                . Create at least:
               </p>
               <ul className="mt-3 space-y-2 font-mono text-[13px] text-amber-50/95">
                 <li className="flex flex-wrap items-center gap-2">
                   <EnvName>FTC_API_USERNAME</EnvName>
                   <span className="text-amber-100/60 font-sans text-sm">
-                    — логин API
+                    — API login
                   </span>
                 </li>
                 <li className="flex flex-wrap items-center gap-2">
                   <EnvName>FTC_API_KEY</EnvName>
                   <span className="text-amber-100/60 font-sans text-sm">
-                    — секретный ключ
+                    — secret key
                   </span>
                 </li>
               </ul>
+              <p className="mt-3 rounded-md border border-amber-400/20 bg-black/20 px-3 py-2 text-xs leading-relaxed text-amber-100/78">
+                In Vercel, the <strong className="font-medium text-amber-100">Name</strong>{" "}
+                field must be exactly these names (
+                <EnvName>FTC_API_USERNAME</EnvName>, <EnvName>FTC_API_KEY</EnvName>); put
+                your login and token only in{" "}
+                <strong className="font-medium text-amber-100">Value</strong>. Do not use
+                your username as the variable name.
+              </p>
               <p className="mt-3 text-amber-100/75">
-                Рекомендуется включить для{" "}
-                <strong className="font-normal text-amber-100">Production</strong> и при
-                необходимости для{" "}
-                <strong className="font-normal text-amber-100">Preview</strong>, если
-                тестируете PR. Справка Vercel:{" "}
+                Enable them for{" "}
+                <strong className="font-normal text-amber-100">Production</strong> and,
+                if you test PR previews, for{" "}
+                <strong className="font-normal text-amber-100">Preview</strong>. Vercel
+                help:{" "}
                 <a
                   href={VERCEL_ENV_DOCS}
                   className="text-amber-200 underline hover:text-amber-50"
@@ -150,12 +158,12 @@ export function FirstApiSetupGuide() {
               3
             </span>
             <div className="min-w-0">
-              <p className="font-medium text-amber-50">Сезон API (по желанию)</p>
+              <p className="font-medium text-amber-50">API season (optional)</p>
               <p className="mt-1.5 text-amber-100/80">
-                Если список ивентов «не тот год», задайте{" "}
-                <EnvName>FTC_SEASON_YEAR</EnvName> (год, который ожидает REST API для
-                текущей игры). Для каталога предиктов можно переопределить{" "}
-                <EnvName>FTC_PREDICTIONS_API_SEASONS</EnvName> (например{" "}
+                If the event list looks like the wrong year, set{" "}
+                <EnvName>FTC_SEASON_YEAR</EnvName> (the year the REST API expects for the
+                current game). For the predictions catalog you can override{" "}
+                <EnvName>FTC_PREDICTIONS_API_SEASONS</EnvName> (e.g.{" "}
                 <code className="text-amber-100/90">2026,2025</code>).
               </p>
             </div>
@@ -166,12 +174,12 @@ export function FirstApiSetupGuide() {
               4
             </span>
             <div className="min-w-0">
-              <p className="font-medium text-amber-50">Пересоберите деплой</p>
+              <p className="font-medium text-amber-50">Redeploy</p>
               <p className="mt-1.5 text-amber-100/80">
-                После сохранения переменных выполните{" "}
-                <strong className="font-normal text-amber-100">Redeploy</strong> последнего
-                деплоя в Vercel или сделайте пустой commit / push — иначе процесс не
-                подхватит новые значения.
+                After saving variables,{" "}
+                <strong className="font-normal text-amber-100">Redeploy</strong> the
+                latest deployment on Vercel or push an empty commit — otherwise the new
+                values will not be picked up.
               </p>
             </div>
           </li>
@@ -181,25 +189,25 @@ export function FirstApiSetupGuide() {
               ✓
             </span>
             <div className="min-w-0">
-              <p className="font-medium text-emerald-100/95">Проверка на этом сайте</p>
+              <p className="font-medium text-emerald-100/95">Verify on this site</p>
               <p className="mt-1.5 text-amber-100/80">
-                Сервисная проверка (JSON):{" "}
+                Health check (JSON):{" "}
                 <Link
                   href="/api/ftc-status"
                   className="text-amber-200 underline hover:text-amber-50"
                 >
                   /api/ftc-status
                 </Link>{" "}
-                — <code className="text-amber-100/90">credentialsPresent</code> и{" "}
-                <code className="text-amber-100/90">listingsOk</code> без выдачи секретов.
-                Затем{" "}
+                — <code className="text-amber-100/90">credentialsPresent</code> and{" "}
+                <code className="text-amber-100/90">listingsOk</code> without exposing
+                secrets. Then open{" "}
                 <Link
                   href="/events"
                   className="text-amber-200 underline hover:text-amber-50"
                 >
                   Events
                 </Link>{" "}
-                и{" "}
+                and{" "}
                 <Link
                   href="/predictions#event-analysis"
                   className="text-amber-200 underline hover:text-amber-50"
@@ -214,10 +222,10 @@ export function FirstApiSetupGuide() {
 
         <div className="mt-6 border-t border-amber-400/15 pt-5 text-sm text-amber-100/70">
           <p>
-            <strong className="font-medium text-amber-100">Overall analysis</strong> на
-            этой странице использует FTC Scout и может работать без FIRST API; Event
-            analysis — только с настроенными{" "}
-            <EnvName>FTC_API_USERNAME</EnvName> и <EnvName>FTC_API_KEY</EnvName>.
+            <strong className="font-medium text-amber-100">Overall analysis</strong> on
+            this page uses FTC Scout and can work without the FIRST API; Event analysis
+            requires{" "}
+            <EnvName>FTC_API_USERNAME</EnvName> and <EnvName>FTC_API_KEY</EnvName>.
           </p>
         </div>
       </GlassCard>
@@ -229,14 +237,14 @@ export function FirstApiSetupGuide() {
 export function FirstApiSetupPointer() {
   return (
     <p className="text-sm leading-relaxed text-white/50">
-      Инструкция по ключам и деплою — в блоке{" "}
+      Keys and deployment steps are in the{" "}
       <a
         href="#first-api-setup"
         className="font-medium text-violet-300 underline hover:text-violet-200"
       >
-        «Как подключить FIRST Events API»
+        How to connect the FIRST Events API
       </a>{" "}
-      выше на этой странице. После настройки обновите страницу.
+      section above on this page. Refresh after you finish setup.
     </p>
   );
 }

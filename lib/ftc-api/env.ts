@@ -60,12 +60,27 @@ export function parseFtcSeasonQueryParam(
   return n;
 }
 
+/**
+ * FIRST Events API basic auth. Use `FTC_API_USERNAME` + `FTC_API_KEY`:
+ * locally in `.env.local` (gitignored), on Vercel in Project → Settings → Environment Variables.
+ * Never commit real keys to the repo.
+ */
 export function getFtcCredentials(): { username: string; key: string } | null {
   // Bracket access so Next.js does not inline undefined at build time (Vercel runtime env).
   const username = process.env["FTC_API_USERNAME"]?.trim();
   const key = process.env["FTC_API_KEY"]?.trim();
   if (!username || !key) return null;
   return { username, key };
+}
+
+/** For diagnostics only (e.g. /api/ftc-status) — never log raw values. */
+export function getFtcCredentialEnvPresence(): {
+  usernameSet: boolean;
+  keySet: boolean;
+} {
+  const username = process.env["FTC_API_USERNAME"]?.trim();
+  const key = process.env["FTC_API_KEY"]?.trim();
+  return { usernameSet: Boolean(username), keySet: Boolean(key) };
 }
 
 export function isFtcApiConfigured(): boolean {

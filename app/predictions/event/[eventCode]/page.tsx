@@ -82,12 +82,12 @@ export default async function EventPredictionPage({
           <GlassCard className="p-6 text-sm text-white/70">
             <p>FIRST API keys are required for event-scoped predictions.</p>
             <p className="mt-3 text-white/55">
-              Полная пошаговая инструкция (ключи, Vercel, проверка) — на{" "}
+              Full setup (keys, Vercel, verification) is on{" "}
               <Link
                 href="/predictions#first-api-setup"
                 className="font-medium text-violet-300 hover:underline"
               >
-                Predictions → блок «Как подключить FIRST Events API»
+                Predictions → “How to connect the FIRST Events API”
               </Link>
               .
             </p>
