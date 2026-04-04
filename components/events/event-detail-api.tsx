@@ -18,6 +18,14 @@ import {
   formatEventLocation,
   uiEventStatusLabel,
 } from "@/lib/ftc-api/event-status";
+import {
+  FIRST_FTC_API_DOCS_URL,
+  eventFormatChips,
+  firstEventWebUrl,
+  firstSeasonHubUrl,
+  formatEventTypeLine,
+  formatEventVenueLine,
+} from "@/lib/ftc-api/event-presentation";
 import { formatAlliance } from "@/lib/format";
 import { allianceStrength, winProbabilities } from "@/lib/prediction";
 import { statsMapFromRankings } from "@/components/matches/match-detail";
@@ -38,6 +46,7 @@ function statusBadgeUi(s: ReturnType<typeof deriveEventStatus>) {
 }
 
 type Props = {
+  seasonYear: number;
   event: SeasonEventModelV2;
   eventCode: string;
   rankings: TeamRankingModel[];
@@ -46,6 +55,7 @@ type Props = {
 };
 
 export function EventDetailApi({
+  seasonYear,
   event,
   eventCode,
   rankings,
@@ -54,6 +64,9 @@ export function EventDetailApi({
 }: Props) {
   const status = deriveEventStatus(event);
   const location = formatEventLocation(event);
+  const venueLine = formatEventVenueLine(event);
+  const typeLine = formatEventTypeLine(event);
+  const formatChips = eventFormatChips(event);
   const name = event.name ?? eventCode;
   const played = matches.filter(
     (m) =>
@@ -125,27 +138,71 @@ export function EventDetailApi({
             ) : null}
           </p>
           <p className="mt-1 text-white/50">{location}</p>
+          {venueLine && venueLine !== location ? (
+            <p className="mt-1 text-sm text-white/40">
+              <span className="text-white/30">Venue: </span>
+              {venueLine}
+            </p>
+          ) : null}
+          <p className="mt-2 text-sm text-violet-200/70">{typeLine}</p>
+          {formatChips.length > 0 ? (
+            <p className="mt-2 flex flex-wrap gap-2">
+              {formatChips.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full border border-white/15 bg-white/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-white/60"
+                >
+                  {c}
+                </span>
+              ))}
+            </p>
+          ) : null}
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
+            <a
+              href={firstEventWebUrl(seasonYear, eventCode)}
+              className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-1.5 text-emerald-200/95 hover:bg-emerald-500/20"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FIRST Event Web ↗
+            </a>
+            <a
+              href={firstSeasonHubUrl(seasonYear)}
+              className="rounded-xl border border-white/10 px-3 py-1.5 text-white/55 hover:bg-white/[0.06]"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Season hub ↗
+            </a>
             <a
               href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
               className="rounded-xl border border-violet-400/25 bg-violet-500/10 px-3 py-1.5 text-violet-200/95 hover:bg-violet-500/20"
               target="_blank"
               rel="noopener noreferrer"
             >
-              FTC Scout event ↗
+              FTC Scout ↗
             </a>
             <a
-              href="https://ftc-events.firstinspires.org/services/API"
+              href={FIRST_FTC_API_DOCS_URL}
               className="rounded-xl border border-white/10 px-3 py-1.5 text-white/55 hover:bg-white/[0.06]"
               target="_blank"
               rel="noopener noreferrer"
             >
-              FIRST Events API ↗
+              API docs ↗
             </a>
           </div>
-          <p className="mt-3 text-xs text-white/35">
-            Match list and scores below come from the FIRST API. Rankings,
-            awards, and stream links for past events are often on{" "}
+          <p className="mt-3 max-w-2xl text-xs leading-relaxed text-white/40">
+            Matches and scores below are loaded from the{" "}
+            <a
+              href={FIRST_FTC_API_DOCS_URL}
+              className="text-violet-400/90 underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FIRST FTC Events API
+            </a>
+            . OPR-style scouting, detailed awards, and community breakdowns are
+            usually richer on{" "}
             <a
               href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
               className="text-violet-400/90 underline"
@@ -154,7 +211,7 @@ export function EventDetailApi({
             >
               FTC Scout
             </a>{" "}
-            for this code.
+            for the same event code.
           </p>
         </div>
 
@@ -286,6 +343,18 @@ export function EventDetailApi({
 
         <section id="teams" className="mb-14 scroll-mt-28">
           <h2 className="text-xl font-semibold">Teams</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
+            Registered for this event per{" "}
+            <a
+              href={FIRST_FTC_API_DOCS_URL}
+              className="text-violet-300/90 underline hover:text-violet-200"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FIRST FTC Events API
+            </a>
+            . Open a number for Scout stats when available.
+          </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {teams.slice(0, 48).map((t) => (
               <Link key={t.teamNumber} href={`/teams/${t.teamNumber}`}>
@@ -293,11 +362,20 @@ export function EventDetailApi({
                   <p className="font-mono text-lg font-semibold">
                     {t.teamNumber}
                   </p>
-                  <p className="line-clamp-2 text-sm text-white/60">
+                  <p className="line-clamp-2 text-sm font-medium text-white/75">
                     {t.nameShort ?? t.nameFull ?? "-"}
                   </p>
-                  <p className="mt-2 text-xs text-white/40">
-                    {[t.city, t.stateProv].filter(Boolean).join(", ")}
+                  {t.nameFull &&
+                  t.nameShort &&
+                  t.nameFull.trim() !== t.nameShort.trim() ? (
+                    <p className="mt-1 line-clamp-2 text-xs text-white/40">
+                      {t.nameFull}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-xs text-white/45">
+                    {[t.city, t.stateProv, t.country]
+                      .filter(Boolean)
+                      .join(", ") || "—"}
                   </p>
                 </GlassCard>
               </Link>
@@ -312,9 +390,20 @@ export function EventDetailApi({
 
         <section id="insights" className="mb-14 scroll-mt-28">
           <h2 className="text-xl font-semibold">Insights</h2>
-          <p className="mt-1 text-sm text-white/45">
-            Alliance preview: rank 1-2 vs 3-4 using qual average as strength
-            proxy.
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
+            Quick alliance preview: we treat rank #1 and #2 as Red, #3 and #4 as
+            Blue, build simple strength from qual averages in the API, then run
+            the same logistic as the home demo. For real scouting depth, pair
+            this with{" "}
+            <a
+              href={`https://ftcscout.org/events/${encodeURIComponent(eventCode)}`}
+              className="text-violet-300/90 underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FTC Scout
+            </a>{" "}
+            event pages.
           </p>
           <GlassCard glow="violet" className="mt-6 p-6 md:p-8">
             <div className="grid gap-6 md:grid-cols-2">

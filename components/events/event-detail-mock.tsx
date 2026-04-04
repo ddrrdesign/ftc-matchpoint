@@ -12,6 +12,7 @@ import { allianceStrength, winProbabilities } from "@/lib/prediction";
 import { formatAlliance } from "@/lib/format";
 import type { Event, EventStatus } from "@/lib/types";
 import { uiEventStatusLabel } from "@/lib/ftc-api/event-status";
+import { FIRST_FTC_API_DOCS_URL } from "@/lib/ftc-api/event-presentation";
 
 function statusBadge(s: EventStatus) {
   const map: Record<EventStatus, string> = {
@@ -30,16 +31,16 @@ function statusBadge(s: EventStatus) {
 
 export function EventDetailMock({ event }: { event: Event }) {
   const t27772 = MOCK_STATS_CA.find((s) => s.teamId === "t27772")!;
-  const t19458 = MOCK_STATS_CA.find((s) => s.teamId === "t19458")!;
-  const t14522 = MOCK_STATS_CA.find((s) => s.teamId === "t14522")!;
-  const t12345 = MOCK_STATS_CA.find((s) => s.teamId === "t12345")!;
+  const t25002 = MOCK_STATS_CA.find((s) => s.teamId === "t25002")!;
+  const t25004 = MOCK_STATS_CA.find((s) => s.teamId === "t25004")!;
+  const t25003 = MOCK_STATS_CA.find((s) => s.teamId === "t25003")!;
 
   const upcomingPreview = {
-    red: [27772, 19458] as [number, number],
-    blue: [14522, 12345] as [number, number],
+    red: [27772, 25002] as [number, number],
+    blue: [25004, 25003] as [number, number],
   };
-  const rS = allianceStrength(t27772, t19458);
-  const bS = allianceStrength(t14522, t12345);
+  const rS = allianceStrength(t27772, t25002);
+  const bS = allianceStrength(t25004, t25003);
   const probs = winProbabilities(rS, bS);
 
   return (
@@ -64,14 +65,46 @@ export function EventDetailMock({ event }: { event: Event }) {
               {event.code}
             </p>
             <p className="mt-1 text-white/50">{event.location}</p>
-            <a
-              href={`https://ftcscout.org/events/${encodeURIComponent(event.code)}`}
-              className="mt-3 inline-flex text-sm text-violet-300/90 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open on FTC Scout ↗
-            </a>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-amber-200/85">
+              Sample storyline only — teams and scores are fictional placeholders
+              for the UI. For real registrations, rankings, and match results use{" "}
+              <a
+                href={FIRST_FTC_API_DOCS_URL}
+                className="text-violet-300 underline hover:text-violet-200"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                FIRST FTC Events API
+              </a>{" "}
+              or{" "}
+              <a
+                href="https://ftc-events.firstinspires.org/#allevents"
+                className="text-violet-300 underline hover:text-violet-200"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                FTC Event Web
+              </a>
+              .
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <a
+                href={`https://ftcscout.org/events/${encodeURIComponent(event.code)}`}
+                className="rounded-xl border border-violet-400/25 bg-violet-500/10 px-3 py-1.5 text-violet-200/95 hover:bg-violet-500/20"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                FTC Scout ↗
+              </a>
+              <a
+                href={FIRST_FTC_API_DOCS_URL}
+                className="rounded-xl border border-white/10 px-3 py-1.5 text-white/55 hover:bg-white/[0.06]"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                API docs ↗
+              </a>
+            </div>
           </div>
         </div>
 
@@ -94,7 +127,7 @@ export function EventDetailMock({ event }: { event: Event }) {
 
         <section className="mb-14">
           <h2 className="text-xl font-semibold">Rankings preview</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {MOCK_RANKINGS_CA.map((r) => (
               <GlassCard key={r.rank} className="p-4">
                 <div className="flex items-center justify-between">
@@ -113,6 +146,10 @@ export function EventDetailMock({ event }: { event: Event }) {
                 </div>
                 <p className="mt-2 font-mono text-lg font-medium">
                   {r.teamNumber}
+                </p>
+                <p className="text-xs text-white/40">
+                  {MOCK_TEAMS.find((t) => t.number === r.teamNumber)?.name ??
+                    "—"}
                 </p>
                 <p className="text-sm text-white/45">
                   Avg {r.avgScore}{" "}
@@ -210,10 +247,12 @@ export function EventDetailMock({ event }: { event: Event }) {
         </section>
 
         <section className="mb-14">
-          <h2 className="text-xl font-semibold">Upcoming - prediction</h2>
-          <p className="mt-1 text-sm text-white/45">
-            MVP model: alliance strength = sum of partner strengths; probability
-            from logistic gap.
+          <h2 className="text-xl font-semibold">Upcoming — prediction</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
+            Demo model: each robot gets a strength score from the sample stats
+            card; alliance strength is the sum of partners, then a logistic maps
+            the gap to win odds. Tune weights on the real site — this is for
+            layout only.
           </p>
           <GlassCard glow="violet" className="mt-6 p-6 md:p-8">
             <div className="grid gap-6 md:grid-cols-2">
@@ -249,10 +288,10 @@ export function EventDetailMock({ event }: { event: Event }) {
           <h2 className="text-xl font-semibold">Event insights</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {[
-              "Strongest auto average at this event: team 27772",
-              "Most consistent scoring: team 14522",
-              "Highest combined alliance score so far: Red in QF 41",
-              "Upset watch: team 12345 - high ceiling, variable lows",
+              "Strongest autonomous split in sample data: 27772 + TalTech-style profiles",
+              "Most consistent match-to-match: 25004 Almaty Constructors",
+              "Highest combined alliance total in table: Red in QF 38 (27772 & 25001)",
+              "Watch 25003: lower average but pairs well with a high-peak partner",
             ].map((line) => (
               <GlassCard key={line} className="p-4 text-sm text-white/70">
                 {line}

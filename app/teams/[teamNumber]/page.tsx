@@ -7,6 +7,10 @@ import { TeamScoutDetail } from "@/components/teams/team-scout-detail";
 import { MOCK_STATS_CA, MOCK_TEAMS } from "@/lib/mock-data";
 import { formatAlliance } from "@/lib/format";
 import { getFtcSeasonYear, isFtcApiConfigured } from "@/lib/ftc-api/env";
+import {
+  FIRST_FTC_API_DOCS_URL,
+  firstSeasonHubUrl,
+} from "@/lib/ftc-api/event-presentation";
 import { fetchTeamByNumber } from "@/lib/ftc-api/service";
 import { getFtcScoutSeason } from "@/lib/ftc-scout/env";
 import {
@@ -67,9 +71,36 @@ export default async function TeamDetailPage({ params }: Props) {
                   .filter(Boolean)
                   .join(", ") || "-"}
               </p>
-              <GlassCard className="mt-8 p-5 text-sm text-white/60">
-                Registration data from FTC Events API. No FTC Scout row for this
-                number, or Scout returned an error.
+              <GlassCard className="mt-8 space-y-3 p-5 text-sm text-white/65">
+                <p>
+                  This page shows{" "}
+                  <span className="font-medium text-white/85">
+                    official registration fields
+                  </span>{" "}
+                  from the FIRST FTC Events API (team list search). We could not
+                  load FTC Scout quick stats for this number — try Scout directly
+                  or confirm the team is active this season.
+                </p>
+                <p className="text-xs text-white/40">
+                  Season hub:{" "}
+                  <a
+                    href={firstSeasonHubUrl(getFtcSeasonYear())}
+                    className="text-violet-300 underline hover:text-violet-200"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    FTC Event Web
+                  </a>
+                  · API:{" "}
+                  <a
+                    href={FIRST_FTC_API_DOCS_URL}
+                    className="text-violet-300 underline hover:text-violet-200"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    docs
+                  </a>
+                </p>
               </GlassCard>
               <Link
                 href={`/events?q=${n}`}
@@ -115,15 +146,15 @@ export default async function TeamDetailPage({ params }: Props) {
 
   const recent = [
     {
-      allies: [19458, 27772],
-      opp: [14522, 21009],
+      allies: [25001, 27772],
+      opp: [25002, 25003],
       score: "214 – 186",
       result: "W" as const,
     },
     {
-      allies: [12345, 27772],
-      opp: [11111, 22222],
-      score: "198 – 201",
+      allies: [27772, 25003],
+      opp: [25004, 25001],
+      score: "196 – 208",
       result: "L" as const,
     },
   ];

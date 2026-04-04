@@ -12,6 +12,11 @@ import {
   formatEventLocation,
   uiEventStatusLabel,
 } from "@/lib/ftc-api/event-status";
+import {
+  FIRST_FTC_API_DOCS_URL,
+  formatEventTypeLine,
+  formatEventVenueLine,
+} from "@/lib/ftc-api/event-presentation";
 
 function statusStyles(s: EventStatus): string {
   switch (s) {
@@ -100,6 +105,27 @@ export default async function EventsPage({ searchParams }: Props) {
               ? "Live listings from FIRST FTC Events API. Search by name, code, or location."
               : "Search sample listings below by name, code, or location."}
           </p>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/40">
+            Official schedules and registrations live on{" "}
+            <a
+              href="https://ftc-events.firstinspires.org/#allevents"
+              className="text-violet-300/90 underline hover:text-violet-200"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FTC Event Web
+            </a>
+            . API reference:{" "}
+            <a
+              href={FIRST_FTC_API_DOCS_URL}
+              className="text-violet-300/90 underline hover:text-violet-200"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ftc-events.firstinspires.org/api-docs
+            </a>
+            .
+          </p>
         </div>
 
         {apiError && (
@@ -143,6 +169,8 @@ export default async function EventsPage({ searchParams }: Props) {
               filteredApi.map((e) => {
                 const code = e.code ?? "";
                 const st = deriveEventStatus(e);
+                const locLine = formatEventLocation(e);
+                const venueExtra = formatEventVenueLine(e);
                 return (
                   <GlassCard key={e.eventId ?? code} glow="violet" className="flex flex-col p-6">
                     <div className="flex items-start justify-between gap-3">
@@ -154,7 +182,15 @@ export default async function EventsPage({ searchParams }: Props) {
                           {e.name ?? code}
                         </h2>
                         <p className="mt-1 text-sm text-white/45">
-                          {formatEventLocation(e)}
+                          {locLine}
+                        </p>
+                        {venueExtra && venueExtra !== locLine ? (
+                          <p className="mt-1 text-xs text-white/35">
+                            {venueExtra}
+                          </p>
+                        ) : null}
+                        <p className="mt-2 text-xs leading-relaxed text-violet-200/55">
+                          {formatEventTypeLine(e)}
                         </p>
                       </div>
                       <span
@@ -181,7 +217,11 @@ export default async function EventsPage({ searchParams }: Props) {
         {!showApi || apiError ? (
           <>
             {!showApi && !apiError && (
-              <p className="mt-10 text-sm text-white/45">Sample event listings:</p>
+              <p className="mt-10 max-w-2xl text-sm leading-relaxed text-white/45">
+                Sample event listings (fictional teams for UI only). Configure{" "}
+                <span className="font-mono text-white/55">FTC_API_*</span> env
+                vars to pull real events from FIRST.
+              </p>
             )}
             <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredMock.length === 0 ? (

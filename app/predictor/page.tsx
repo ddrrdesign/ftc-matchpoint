@@ -13,6 +13,11 @@ import {
   maxOprTotalNp,
   oprTotalNpAtEvent,
 } from "@/lib/ftc-scout/queries";
+import {
+  predictorConfidenceExplanation,
+  predictorSplitHint,
+  predictorTakeawayParagraph,
+} from "@/lib/predictor-feedback";
 import { winProbabilitiesFromScoutTotals } from "@/lib/prediction";
 
 /** ISR: keep Predictor numbers relatively fresh during Championship week. */
@@ -140,6 +145,18 @@ export default async function PredictorPage({ searchParams }: Props) {
   const favoredSide =
     probs == null ? null : probs.red >= probs.blue ? "red" : "blue";
 
+  const totEdgeAbs = totEdge != null ? Math.abs(totEdge) : 0;
+  const predictorTakeaway =
+    favoredSide && totEdge != null
+      ? predictorTakeawayParagraph(favoredSide, totEdgeAbs, conf)
+      : null;
+  const predictorConfExpl = predictorConfidenceExplanation(conf);
+  const predictorSplit = predictorSplitHint(
+    totEdge ?? 0,
+    autoEdge,
+    dcEdge
+  );
+
   const swapHref =
     red && blue
       ? `/predictor?r=${encodeURIComponent(`${blue[0]},${blue[1]}`)}&b=${encodeURIComponent(`${red[0]},${red[1]}`)}`
@@ -254,8 +271,22 @@ export default async function PredictorPage({ searchParams }: Props) {
                       {favoredSide === "red" ? "Red" : "Blue"} favored
                     </p>
                     <p className="mt-1 text-sm text-white/45">
-                      Confidence: {conf} · low sample = treat as weak signal
+                      Model confidence band:{" "}
+                      <span className="font-medium text-white/70">{conf}</span>
                     </p>
+                    {predictorTakeaway ? (
+                      <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/60">
+                        {predictorTakeaway}
+                      </p>
+                    ) : null}
+                    <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/45">
+                      {predictorConfExpl}
+                    </p>
+                    {predictorSplit ? (
+                      <p className="mt-2 max-w-xl text-sm text-amber-200/85">
+                        {predictorSplit}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-center sm:min-w-[240px]">
                     <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3">
@@ -328,9 +359,29 @@ export default async function PredictorPage({ searchParams }: Props) {
                     </ul>
                   </div>
                 )}
-                <p className="mt-6 text-[11px] text-white/35">
-                  Share: copy URL. Model = logistic on Total NP gap only; splits
-                  above are diagnostic, not separate models.
+                <p className="mt-6 text-[11px] leading-relaxed text-white/35">
+                  Share: copy URL. Odds come from a logistic on the Total NP gap
+                  only (Scout composite). Auto / teleop / endgame lines explain
+                  where that gap might come from — they are not separate
+                  prediction models. Cross-check on{" "}
+                  <a
+                    href="https://ftcscout.org"
+                    className="text-violet-400/90 underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    FTC Scout
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="https://ftc-events.firstinspires.org/#allevents"
+                    className="text-violet-400/90 underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    FIRST Event Web
+                  </a>{" "}
+                  for real match context.
                 </p>
               </GlassCard>
             )}

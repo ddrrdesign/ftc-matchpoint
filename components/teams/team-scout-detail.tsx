@@ -91,21 +91,35 @@ export function TeamScoutDetail({ team, stats, events }: Props) {
           </div>
         </section>
 
-        <GlassCard className="mt-10 p-5 text-sm text-white/55">
-          Stats and ranks are from{" "}
-          <a
-            href="https://ftcscout.org"
-            className="text-violet-300 hover:underline"
-            target="_blank"
-            rel="noreferrer"
-          >
-            FTC Scout
-          </a>
-          . This app focuses on alliance predictions - go to{" "}
-          <Link href="/predictor" className="text-violet-300 hover:underline">
-            Predictor
-          </Link>{" "}
-          to model Red vs Blue.
+        <GlassCard className="mt-10 space-y-2 p-5 text-sm text-white/55">
+          <p>
+            Stats and ranks are from{" "}
+            <a
+              href="https://ftcscout.org"
+              className="text-violet-300 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              FTC Scout
+            </a>
+            . Official registration and event lists live on{" "}
+            <a
+              href="https://ftc-events.firstinspires.org/#allevents"
+              className="text-violet-300 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              FTC Event Web
+            </a>
+            .
+          </p>
+          <p>
+            For Red vs Blue odds from the same Scout slice, open{" "}
+            <Link href="/predictor" className="text-violet-300 hover:underline">
+              Predictor
+            </Link>
+            .
+          </p>
         </GlassCard>
       </main>
     </PageShell>
