@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   EventBrowseList,
   type EventBrowseListRow,
 } from "@/components/events/event-browse-list";
 import { EventsCategoryHub } from "@/components/events/events-category-hub";
+import { EventsViewScroll } from "@/components/events/events-view-scroll";
 import { SeasonYearFilter } from "@/components/events/season-year-filter";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
@@ -199,6 +201,7 @@ function mapApiRowSourcesToBrowseRows(
     const venue = formatEventVenueLine(e);
     const qs = new URLSearchParams();
     qs.set("season", String(seasonYear));
+    const detailHref = `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`;
     return {
       rowKey: `${seasonYear}-${code || e.eventId || i}`,
       seasonYear,
@@ -210,7 +213,8 @@ function mapApiRowSourcesToBrowseRows(
       typeLine: formatEventTypeLine(e),
       teams: teamN != null ? String(teamN) : "—",
       status: st,
-      primaryHref: `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`,
+      detailHref,
+      primaryHref: detailHref,
       primaryLabel: "Analytics",
       primaryExternal: false,
       firstWebUrl: OFFICIAL_EVENTS_URL,
@@ -235,6 +239,9 @@ function mapScoutEventsToBrowseRows(items: ScoutEventListItem[]): EventBrowseLis
         dateStart: e.start ?? undefined,
         dateEnd: e.end ?? undefined,
       }) ?? "TBA";
+    const qs = new URLSearchParams();
+    qs.set("season", String(seasonY));
+    const detailHref = `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`;
     return {
       rowKey: `${seasonY}-${code}-${i}`,
       seasonYear: seasonY,
@@ -246,6 +253,7 @@ function mapScoutEventsToBrowseRows(items: ScoutEventListItem[]): EventBrowseLis
       typeLine: scoutTypeLine(e),
       teams: "—",
       status: st,
+      detailHref,
       primaryHref: scoutEventWebUrl(seasonY, code),
       primaryLabel: "Scout",
       primaryExternal: true,
@@ -262,6 +270,7 @@ function mapMockEventsToBrowseRows(
   return events.map((e) => {
     const qs = new URLSearchParams();
     qs.set("season", String(defaultSeason));
+    const detailHref = `/events/${encodeURIComponent(e.code)}?${qs.toString()}`;
     return {
       rowKey: e.id,
       seasonYear: defaultSeason,
@@ -273,7 +282,8 @@ function mapMockEventsToBrowseRows(
       typeLine: e.firstInspiresUrl ? "Demo" : null,
       teams: String(e.teamCount),
       status: e.status,
-      primaryHref: `/events/${encodeURIComponent(e.code)}?${qs.toString()}`,
+      detailHref,
+      primaryHref: detailHref,
       primaryLabel: "Analytics",
       primaryExternal: false,
       firstWebUrl: OFFICIAL_EVENTS_URL,
@@ -503,6 +513,9 @@ export default async function EventsPage({ searchParams }: Props) {
   return (
     <PageShell>
       <SiteHeader />
+      <Suspense fallback={null}>
+        <EventsViewScroll />
+      </Suspense>
       <main className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-12 md:py-16">
         <header className="max-w-3xl">
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-violet-300/55">
@@ -743,7 +756,10 @@ export default async function EventsPage({ searchParams }: Props) {
         />
 
         {view ? (
-          <section className="mt-8 sm:mt-10">
+          <section
+            id="events-results"
+            className="mt-6 scroll-mt-4 sm:mt-8 sm:scroll-mt-6 md:mt-10"
+          >
             <p className="text-xs text-white/40 sm:text-sm">
               <span className="font-medium text-white/55">
                 {activeBucketRows.length}

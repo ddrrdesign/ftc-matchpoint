@@ -4,17 +4,10 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { PredictionShowcase } from "@/components/home/prediction-showcase";
-import { formatAlliance } from "@/lib/format";
-import { getFtcSeasonYear } from "@/lib/ftc-api/env";
 import {
-  MOCK_EVENTS,
-  MOCK_MATCHES_HOME,
   MOCK_PREDICTION_SHOWCASE,
   MOCK_UPCOMING_MATCH,
 } from "@/lib/mock-data";
-
-const featured = MOCK_EVENTS[0]!;
-const featuredEventHref = `/events/${encodeURIComponent(featured.code)}?season=${getFtcSeasonYear()}`;
 
 export default function Home() {
   return (
@@ -98,101 +91,6 @@ export default function Home() {
           match={MOCK_UPCOMING_MATCH}
           prediction={MOCK_PREDICTION_SHOWCASE}
         />
-
-        <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Featured event
-              </h2>
-              <p className="mt-1 text-sm text-white/45">
-                Placeholder card - connect FIRST API for live events.
-              </p>
-            </div>
-            <Link
-              href={featuredEventHref}
-              className="text-sm text-violet-300/90 hover:text-violet-200"
-            >
-              Open event →
-            </Link>
-          </div>
-
-          <GlassCard glow="violet" className="mt-6 p-6 md:flex md:items-center md:justify-between md:gap-8">
-            <div>
-              <h3 className="text-xl font-semibold">{featured.name}</h3>
-              <p className="mt-1 text-sm text-white/45">{featured.location}</p>
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/55">
-                <span>{featured.teamCount} teams</span>
-                <span>{featured.matchCount} matches</span>
-              </div>
-            </div>
-            <Link
-              href={featuredEventHref}
-              className="mt-5 inline-flex shrink-0 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/90 md:mt-0"
-            >
-              View dashboard
-            </Link>
-          </GlassCard>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Latest matches
-              </h2>
-              <p className="mt-1 text-sm text-white/45">
-                Sample rows - not your API feed.
-              </p>
-            </div>
-            <Link
-              href="/events/CA-CAS"
-              className="text-sm text-violet-300/90 hover:text-violet-200"
-            >
-              Event schedule →
-            </Link>
-          </div>
-
-          <div className="-mx-4 overflow-x-auto pb-1 sm:mx-0 sm:overflow-visible sm:pb-0">
-            <GlassCard className="min-w-[36rem] overflow-hidden p-0 sm:min-w-0">
-              <div className="grid grid-cols-[minmax(0,0.7fr)_1fr_1fr_0.65fr_0.55fr] gap-2 border-b border-white/[0.07] bg-white/[0.03] px-4 py-3 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40 md:px-5">
-                <div>Match</div>
-                <div>Red</div>
-                <div>Blue</div>
-                <div>Score</div>
-                <div className="text-right">Win</div>
-              </div>
-              {MOCK_MATCHES_HOME.map((m) => (
-                <div
-                  key={m.id}
-                  className="grid grid-cols-[minmax(0,0.7fr)_1fr_1fr_0.65fr_0.55fr] items-center gap-2 border-b border-white/[0.05] px-4 py-3 text-[13px] last:border-0 md:px-5"
-                >
-                  <div className="font-medium text-white/85">{m.label}</div>
-                  <div className="font-mono text-red-200/80">
-                    {formatAlliance(m.red.teamNumbers)}
-                  </div>
-                  <div className="font-mono text-blue-200/80">
-                    {formatAlliance(m.blue.teamNumbers)}
-                  </div>
-                  <div className="tabular-nums text-white/75">
-                    {m.redScore}–{m.blueScore}
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                        m.winner === "red"
-                          ? "border-red-400/25 bg-red-500/12 text-red-200"
-                          : "border-blue-400/25 bg-blue-500/12 text-blue-200"
-                      }`}
-                    >
-                      {m.winner === "red" ? "R" : "B"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </GlassCard>
-          </div>
-        </section>
 
         <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
           <GlassCard className="p-6 md:p-8">

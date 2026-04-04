@@ -208,8 +208,8 @@ export const MOCK_UPCOMING_MATCH: Match = {
   eventId: "evt-ca-cas",
   label: "Qualification 42",
   phase: "qualification",
-  red: { color: "red", teamNumbers: [27772, 25002] },
-  blue: { color: "blue", teamNumbers: [25004, 25003] },
+  red: { color: "red", teamNumbers: [11111, 22222] },
+  blue: { color: "blue", teamNumbers: [33333, 44444] },
   scheduledTime: undefined,
 };
 
@@ -220,8 +220,8 @@ export const MOCK_PREDICTION_SHOWCASE: MatchPrediction = {
   favored: "red",
   confidence: "medium",
   reasons: [
-    "Red pairs the top-ranked scorer with a strong auto-heavy partner",
-    "Blue’s peak is high but consistency scores are more volatile in sample stats",
-    "Endgame contribution from Red’s first pick matches well against Blue’s DC profile",
+    "Illustration only: fake team numbers 11111–44444, not real Scout data.",
+    "Red’s composite total NP is higher in this made-up snapshot.",
+    "Open Predictor and enter real team numbers to compare your alliances.",
   ],
 };

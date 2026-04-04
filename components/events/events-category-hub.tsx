@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/glass-card";
 
+const RESULTS_HASH = "#events-results";
+
 function viewHref(view: "past" | "premier" | "worlds", q: string): string {
   const p = new URLSearchParams();
   if (q) p.set("q", q);
   p.set("view", view);
-  return `/events?${p.toString()}`;
+  return `/events?${p.toString()}${RESULTS_HASH}`;
 }
 
 function allHref(q: string): string {
@@ -25,7 +27,7 @@ type ColumnProps = {
 function HubColumn({ title, subtitle, view, q, total, active }: ColumnProps) {
   return (
     <GlassCard
-      className={`flex h-full flex-col border-white/[0.08] p-4 transition sm:p-5 ${
+      className={`flex h-full flex-col border-white/[0.08] p-3 transition sm:p-5 ${
         active
           ? "border-violet-400/35 bg-violet-500/[0.08] shadow-[0_0_0_1px_rgba(139,92,246,0.2)_inset]"
           : "hover:border-white/12"
@@ -34,22 +36,22 @@ function HubColumn({ title, subtitle, view, q, total, active }: ColumnProps) {
       <Link
         prefetch
         href={viewHref(view, q)}
-        className="touch-manipulation flex flex-1 flex-col select-none rounded-xl py-1 outline-none ring-violet-500/40 transition-transform duration-100 focus-visible:ring-2 active:scale-[0.99] active:bg-white/[0.04] sm:py-0 sm:active:scale-100 sm:active:bg-transparent"
+        className="touch-manipulation flex flex-1 flex-col select-none rounded-lg py-0.5 outline-none ring-violet-500/40 transition-transform duration-100 focus-visible:ring-2 active:scale-[0.99] active:bg-white/[0.04] sm:rounded-xl sm:py-0 sm:active:scale-100 sm:active:bg-transparent"
       >
-        <h2 className="text-base font-semibold tracking-tight text-white/95 sm:text-lg">
+        <h2 className="text-sm font-semibold leading-snug tracking-tight text-white/95 sm:text-lg">
           {title}
         </h2>
-        <p className="mt-1.5 line-clamp-4 text-[11px] leading-snug text-white/45 sm:line-clamp-none sm:text-xs sm:leading-relaxed">
+        <p className="mt-1 line-clamp-3 text-[10px] leading-snug text-white/45 sm:line-clamp-none sm:mt-1.5 sm:text-xs sm:leading-relaxed">
           {subtitle}
         </p>
-        <p className="mt-4 text-xl font-semibold tabular-nums text-white/90 sm:mt-5 sm:text-2xl">
+        <p className="mt-2.5 text-lg font-semibold tabular-nums text-white/90 sm:mt-5 sm:text-2xl">
           {total}
-          <span className="ml-2 text-xs font-normal text-white/40 sm:text-sm">
+          <span className="ml-1.5 text-[11px] font-normal text-white/40 sm:ml-2 sm:text-sm">
             {total === 1 ? "event" : "events"}
           </span>
         </p>
-        <span className="mt-auto pt-4 inline-flex min-h-[44px] items-center text-sm font-medium text-violet-300/90 underline decoration-violet-400/35 underline-offset-2 sm:min-h-0 sm:pt-5 sm:text-xs">
-          Open full list →
+        <span className="mt-auto pt-2.5 inline-flex min-h-[40px] items-center text-xs font-medium text-violet-300/90 underline decoration-violet-400/35 underline-offset-2 sm:min-h-[44px] sm:pt-5 sm:text-xs">
+          Open list →
         </span>
       </Link>
     </GlassCard>

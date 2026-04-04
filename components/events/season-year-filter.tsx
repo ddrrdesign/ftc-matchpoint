@@ -10,7 +10,7 @@ function seasonFilterHref(
   if (q) p.set("q", q);
   p.set("view", view);
   if (year != null) p.set("season", String(year));
-  return `/events?${p.toString()}`;
+  return `/events?${p.toString()}#events-results`;
 }
 
 const chipBase =

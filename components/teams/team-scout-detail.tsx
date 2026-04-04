@@ -34,7 +34,7 @@ export function TeamScoutDetail({ team, stats, events, eventCatalog }: Props) {
   const bestOpr = maxOprTotalNp(events);
   const lookup = catalogLookup(eventCatalog);
 
-  const recentRows = [...events]
+  const sorted = [...events]
     .map((p) => {
       const meta = lookup(p.season, p.eventCode);
       const start = meta?.start?.trim() ?? "";
@@ -46,8 +46,17 @@ export function TeamScoutDetail({ team, stats, events, eventCatalog }: Props) {
       if (a.start) return -1;
       if (b.start) return 1;
       return (b.p.eventCode ?? "").localeCompare(a.p.eventCode ?? "");
-    })
-    .slice(0, MAX_RECENT_EVENTS);
+    });
+
+  const seen = new Set<string>();
+  const recentRows: typeof sorted = [];
+  for (const row of sorted) {
+    const k = `${row.p.season}:${(row.p.eventCode ?? "").trim().toLowerCase()}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    recentRows.push(row);
+    if (recentRows.length >= MAX_RECENT_EVENTS) break;
+  }
 
   return (
     <PageShell>

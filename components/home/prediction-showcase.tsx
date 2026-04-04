@@ -15,25 +15,25 @@ export function PredictionShowcase({ match, prediction }: Props) {
   const b = match.blue.teamNumbers.join(",");
 
   return (
-    <section id="predictions" className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 sm:pb-16">
-      <div className="mb-6">
+    <section id="predictions" className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 sm:pb-16">
+      <div className="mb-4 sm:mb-6">
         <p className="text-xs font-medium uppercase tracking-[0.28em] text-violet-300/55">
           Predictor showcase
         </p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+        <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
           What the matchup screen looks like
         </h2>
       </div>
 
       <GlassCard glow="violet" className="overflow-hidden p-0">
-        <div className="border-b border-white/[0.06] bg-violet-950/20 px-6 py-5 md:px-8">
+        <div className="border-b border-white/[0.06] bg-violet-950/20 px-4 py-4 sm:px-6 sm:py-5 md:px-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/45">
                 {match.label}
               </p>
-              <p className="mt-1 text-lg font-medium text-white/90">
-                Example matchup
+              <p className="mt-1 text-base font-medium text-white/90 sm:text-lg">
+                Example (fake team numbers)
               </p>
             </div>
             <span
@@ -52,33 +52,33 @@ export function PredictionShowcase({ match, prediction }: Props) {
         </div>
 
         <div className="grid gap-0 lg:grid-cols-2">
-          <div className="border-b border-white/[0.06] p-6 md:p-8 lg:border-b-0 lg:border-r">
-            <p className="text-xs uppercase tracking-[0.2em] text-red-300/70">
+          <div className="border-b border-white/[0.06] p-4 sm:p-6 md:p-8 lg:border-b-0 lg:border-r">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-red-300/70 sm:text-xs">
               Red alliance
             </p>
-            <p className="mt-3 font-mono text-xl text-white/95">
+            <p className="mt-2 font-mono text-base text-white/95 sm:mt-3 sm:text-xl">
               {formatAlliance(match.red.teamNumbers)}
             </p>
-            <p className="mt-6 text-5xl font-semibold tabular-nums text-red-200/95">
+            <p className="mt-4 text-4xl font-semibold tabular-nums text-red-200/95 sm:mt-6 sm:text-5xl">
               {redPct}
             </p>
-            <p className="mt-1 text-sm text-white/45">Win probability</p>
+            <p className="mt-1 text-xs text-white/45 sm:text-sm">Win probability</p>
           </div>
-          <div className="p-6 md:p-8">
-            <p className="text-xs uppercase tracking-[0.2em] text-blue-300/70">
+          <div className="p-4 sm:p-6 md:p-8">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-blue-300/70 sm:text-xs">
               Blue alliance
             </p>
-            <p className="mt-3 font-mono text-xl text-white/95">
+            <p className="mt-2 font-mono text-base text-white/95 sm:mt-3 sm:text-xl">
               {formatAlliance(match.blue.teamNumbers)}
             </p>
-            <p className="mt-6 text-5xl font-semibold tabular-nums text-blue-200/95">
+            <p className="mt-4 text-4xl font-semibold tabular-nums text-blue-200/95 sm:mt-6 sm:text-5xl">
               {bluePct}
             </p>
-            <p className="mt-1 text-sm text-white/45">Win probability</p>
+            <p className="mt-1 text-xs text-white/45 sm:text-sm">Win probability</p>
           </div>
         </div>
 
-        <div className="border-t border-white/[0.06] bg-[#070512]/80 px-6 py-6 md:px-8">
+        <div className="border-t border-white/[0.06] bg-[#070512]/80 px-4 py-5 sm:px-6 sm:py-6 md:px-8">
           <p className="text-xs uppercase tracking-[0.22em] text-white/40">
             Why the edge
           </p>
