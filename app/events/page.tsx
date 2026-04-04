@@ -1,4 +1,7 @@
-import { EventBrowseCard } from "@/components/events/event-browse-card";
+import {
+  EventBrowseList,
+  type EventBrowseListRow,
+} from "@/components/events/event-browse-list";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -10,13 +13,10 @@ import {
   dedupeEventsByCode,
 } from "@/lib/ftc-api/events-listing";
 import {
-  EVENT_REGION_FALLBACK,
-  eventRegionGroupKey,
-  eventRegionSectionTitle,
+  firstEventWebUrl,
   formatEventDateRange,
   formatEventTypeLine,
   formatEventVenueLine,
-  sortRegionGroupKeys,
 } from "@/lib/ftc-api/event-presentation";
 import { deriveEventStatus, formatEventLocation } from "@/lib/ftc-api/event-status";
 import {
@@ -25,7 +25,9 @@ import {
 } from "@/lib/ftc-api/service";
 import type { SeasonEventModelV2 } from "@/lib/ftc-api/types";
 
-const MAX_TEAM_COUNT_LOOKUPS = 56;
+const OFFICIAL_EVENTS_URL = "https://ftc-events.firstinspires.org/#allevents";
+
+const MAX_TEAM_COUNT_LOOKUPS = 80;
 
 function filterMockEvents(q: string): Event[] {
   if (!q) return MOCK_EVENTS;
@@ -58,30 +60,18 @@ function filterApiEvents(
   });
 }
 
-function mockRegionGroupKey(e: Event): string {
-  const code = e.code.toUpperCase();
-  const name = e.name.toLowerCase();
-  const loc = e.location.toLowerCase();
-  if (code.includes("WORLD") || /^FTCCMP\d*/i.test(code)) {
-    return "__WORLDS__";
-  }
-  if (
-    (name.includes("first championship") ||
-      name.includes("world festival")) &&
-    (name.includes("houston") || name.includes("detroit"))
-  ) {
-    return "__WORLDS__";
-  }
-  if (loc.includes("kazakhstan")) return "Kazakhstan";
-  return EVENT_REGION_FALLBACK;
+function mockDateRangeDisplay(e: Event): string {
+  if (!e.startDate?.trim()) return "TBA";
+  return (
+    formatEventDateRange({
+      dateStart: e.startDate,
+      dateEnd: e.endDate,
+    }) ?? "TBA"
+  );
 }
 
-function mockDateRangeDisplay(e: Event): string | null {
-  if (!e.startDate?.trim()) return null;
-  return formatEventDateRange({
-    dateStart: e.startDate,
-    dateEnd: e.endDate,
-  });
+function compareMockByStartDesc(a: Event, b: Event): number {
+  return (b.startDate || "").localeCompare(a.startDate || "");
 }
 
 type Props = {
@@ -109,73 +99,111 @@ export default async function EventsPage({ searchParams }: Props) {
   }
 
   const filteredApi = filterApiEvents(apiEvents, q);
-  const filteredMock = filterMockEvents(q);
+  const filteredMock = [...filterMockEvents(q)].sort(compareMockByStartDesc);
 
   const showApi = apiOn && apiRes?.ok && apiEvents.length > 0;
 
   let teamCounts = new Map<string, number | null>();
-  let mergedForMetrics: ReturnType<typeof dedupeEventsByCode> = [];
+  let mergedList: ReturnType<typeof dedupeEventsByCode> = [];
 
   if (showApi) {
-    mergedForMetrics = dedupeEventsByCode(filteredApi);
-    mergedForMetrics.sort((a, b) =>
+    mergedList = dedupeEventsByCode(filteredApi);
+    mergedList.sort((a, b) =>
       compareEventsByStartDesc(a.event, b.event)
     );
-    const codes = mergedForMetrics
+    const codes = mergedList
       .map((m) => m.event.code?.trim())
       .filter((c): c is string => Boolean(c));
     if (codes.length > 0 && codes.length <= MAX_TEAM_COUNT_LOOKUPS) {
-      teamCounts = await fetchTeamCountsForEventCodes(season, codes, 8);
+      teamCounts = await fetchTeamCountsForEventCodes(season, codes, 10);
     }
   }
 
-  const apiByRegion = new Map<
-    string,
-    ReturnType<typeof dedupeEventsByCode>
-  >();
-  if (showApi) {
-    for (const m of mergedForMetrics) {
-      const key = eventRegionGroupKey(m.event);
-      const arr = apiByRegion.get(key) ?? [];
-      arr.push(m);
-      apiByRegion.set(key, arr);
-    }
-  }
-  const apiRegionKeys = [...apiByRegion.keys()].sort(sortRegionGroupKeys);
+  const apiRows: EventBrowseListRow[] = showApi
+    ? mergedList.map((m, i) => {
+        const e = m.event;
+        const code = e.code?.trim() ?? "";
+        const st = deriveEventStatus(e);
+        const teamN = code ? teamCounts.get(code) ?? null : null;
+        const dates = formatEventDateRange(e) ?? "TBA";
+        const loc = formatEventLocation(e);
+        const venue = formatEventVenueLine(e);
+        return {
+          rowKey: code || e.eventId || `row-${i}`,
+          code,
+          name: (e.name ?? code).trim() || "Event",
+          dates,
+          location: loc || "—",
+          venueExtra:
+            venue && venue !== loc ? venue : null,
+          typeLine: formatEventTypeLine(e),
+          teams: teamN != null ? String(teamN) : "—",
+          status: st,
+          internalHref: `/events/${encodeURIComponent(code || "unknown")}`,
+          firstWebUrl: code ? firstEventWebUrl(season, code) : null,
+          divisionsNote:
+            m.sourceRowCount > 1
+              ? `${m.sourceRowCount} divisions (merged)`
+              : null,
+        };
+      })
+    : [];
 
-  const mockByRegion = new Map<string, Event[]>();
-  for (const e of filteredMock) {
-    const key = mockRegionGroupKey(e);
-    const arr = mockByRegion.get(key) ?? [];
-    arr.push(e);
-    mockByRegion.set(key, arr);
-  }
-  const mockRegionKeys = [...mockByRegion.keys()].sort(sortRegionGroupKeys);
+  const mockRows: EventBrowseListRow[] = !showApi
+    ? filteredMock.map((e) => ({
+        rowKey: e.id,
+        code: e.code,
+        name: e.name,
+        dates: mockDateRangeDisplay(e),
+        location: e.location,
+        venueExtra: null,
+        typeLine: null,
+        teams: String(e.teamCount),
+        status: e.status,
+        internalHref: `/events/${encodeURIComponent(e.code)}`,
+        firstWebUrl: firstEventWebUrl(season, e.code),
+        divisionsNote: null,
+      }))
+    : [];
+
+  const totalShown = showApi ? apiRows.length : mockRows.length;
 
   return (
     <PageShell>
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 md:py-16">
-        <header className="max-w-2xl">
+        <header className="max-w-3xl">
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-violet-300/55">
             Events
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
-            Season calendar
+            All competitions
           </h1>
+          <p className="mt-2 text-xs text-white/35">
+            Season {season} (same year key as FTC Event Web URLs and API)
+          </p>
           <p className="mt-4 text-base leading-relaxed text-white/45">
-            {showApi
-              ? "Worlds is grouped on its own; everything else is filed under country (or region code when the API does not send a country). Each card shows the competition window and how many teams were on the roster when we could load that count."
-              : "Sample events so you can see the layout. Connect the FIRST API to pull your season."}
+            Full season index from the same data FIRST publishes on{" "}
+            <a
+              href={OFFICIAL_EVENTS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-violet-300/90 underline decoration-violet-400/40 underline-offset-2 hover:text-violet-200"
+            >
+              FTC Event Web
+            </a>
+            . Use search to filter; open a row for rankings, matches, and
+            awards here, or the FIRST link for the official event page on
+            firstinspires.org.
           </p>
           {showApi &&
-          mergedForMetrics.length > 0 &&
-          mergedForMetrics.filter((m) => m.event.code?.trim()).length >
+          mergedList.length > 0 &&
+          mergedList.filter((m) => m.event.code?.trim()).length >
             MAX_TEAM_COUNT_LOOKUPS ? (
-            <p className="mt-3 max-w-xl text-xs leading-relaxed text-white/35">
-              Team totals are fetched per event code. With more than{" "}
-              {MAX_TEAM_COUNT_LOOKUPS} distinct codes, cards show “—” for
-              teams—narrow the list with search to load counts.
+            <p className="mt-3 max-w-2xl text-xs text-white/35">
+              Team counts load in batches. With more than{" "}
+              {MAX_TEAM_COUNT_LOOKUPS} event codes, the Teams column shows “—”
+              until you narrow the list with search.
             </p>
           ) : null}
         </header>
@@ -183,10 +211,10 @@ export default async function EventsPage({ searchParams }: Props) {
         {apiError && (
           <GlassCard className="mt-8 border-red-400/20 bg-red-500/10 p-4 text-sm text-red-100/90">
             <p className="font-medium">
-              Could not load live events ({apiError.status})
+              Could not load events ({apiError.status})
             </p>
             <p className="mt-2 text-red-200/70">
-              Showing sample listings below.
+              Showing demo rows below. Check API credentials on the server.
             </p>
           </GlassCard>
         )}
@@ -201,7 +229,7 @@ export default async function EventsPage({ searchParams }: Props) {
               name="q"
               type="search"
               defaultValue={q}
-              placeholder="Name, code, city, country…"
+              placeholder="Filter by name, code, city, country…"
               className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none ring-violet-500/40 focus:border-violet-500/40 focus:ring-2"
             />
             <button
@@ -214,106 +242,43 @@ export default async function EventsPage({ searchParams }: Props) {
         </form>
 
         {showApi ? (
-          <div className="mt-14 space-y-14">
+          <>
             {filteredApi.length === 0 ? (
-              <p className="text-white/50">No events match “{q}”.</p>
+              <p className="mt-10 text-white/50">No events match “{q}”.</p>
             ) : (
-              apiRegionKeys.map((regionKey) => {
-                const slice = apiByRegion.get(regionKey) ?? [];
-                return (
-                  <section key={regionKey} className="scroll-mt-8">
-                    <div className="mb-6 border-b border-white/[0.08] pb-4">
-                      <h2 className="text-xl font-semibold tracking-tight text-white">
-                        {eventRegionSectionTitle(regionKey)}
-                      </h2>
-                      <p className="mt-1 text-sm text-white/38">
-                        {slice.length}{" "}
-                        {slice.length === 1 ? "competition" : "competitions"}
-                      </p>
-                    </div>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {slice.map((m) => {
-                        const e = m.event;
-                        const code = e.code?.trim() ?? "";
-                        const st = deriveEventStatus(e);
-                        const teamN = code ? teamCounts.get(code) ?? null : null;
-                        return (
-                          <EventBrowseCard
-                            key={code || e.eventId}
-                            code={code}
-                            name={(e.name ?? code).trim() || "Event"}
-                            locationLine={formatEventLocation(e)}
-                            venueLine={formatEventVenueLine(e)}
-                            typeLine={formatEventTypeLine(e)}
-                            dateRange={formatEventDateRange(e)}
-                            teamCount={teamN}
-                            divisionsNote={
-                              m.sourceRowCount > 1
-                                ? `${m.sourceRowCount} divisions · one schedule page`
-                                : null
-                            }
-                            status={st}
-                            href={`/events/${encodeURIComponent(code || "unknown")}`}
-                          />
-                        );
-                      })}
-                    </div>
-                  </section>
-                );
-              })
+              <>
+                <p className="mt-6 text-sm text-white/40">
+                  Showing{" "}
+                  <span className="font-medium text-white/60 tabular-nums">
+                    {totalShown}
+                  </span>{" "}
+                  {totalShown === 1 ? "row" : "rows"}
+                  {q ? ` for “${q}”` : ""}
+                </p>
+                <EventBrowseList rows={apiRows} />
+              </>
             )}
-          </div>
+          </>
         ) : null}
 
         {!showApi || apiError ? (
           <>
-            {!showApi && !apiError && (
-              <p className="mt-10 max-w-xl text-sm text-white/40">
-                Set <span className="font-mono text-white/55">FTC_API_*</span>{" "}
-                environment variables to hydrate this view from FIRST.
+            {filteredMock.length === 0 ? (
+              <p className="mt-10 text-white/50">
+                No demo events match “{q}”.
               </p>
-            )}
-            <div className="mt-10 space-y-14">
-              {filteredMock.length === 0 ? (
-                <p className="text-white/50">
-                  No sample events match “{q}”.
+            ) : (
+              <>
+                <p className="mt-6 text-sm text-white/40">
+                  Demo data ·{" "}
+                  <span className="tabular-nums font-medium text-white/55">
+                    {totalShown}
+                  </span>{" "}
+                  {totalShown === 1 ? "row" : "rows"}
                 </p>
-              ) : (
-                mockRegionKeys.map((regionKey) => {
-                  const slice = mockByRegion.get(regionKey) ?? [];
-                  return (
-                    <section key={regionKey} className="scroll-mt-8">
-                      <div className="mb-6 border-b border-white/[0.08] pb-4">
-                        <h2 className="text-xl font-semibold tracking-tight text-white">
-                          {eventRegionSectionTitle(regionKey)}
-                        </h2>
-                        <p className="mt-1 text-sm text-white/38">
-                          {slice.length}{" "}
-                          {slice.length === 1 ? "competition" : "competitions"}
-                        </p>
-                      </div>
-                      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {slice.map((e) => (
-                          <EventBrowseCard
-                            key={e.id}
-                            code={e.code}
-                            name={e.name}
-                            locationLine={e.location}
-                            venueLine={null}
-                            typeLine="Sample · FTC"
-                            dateRange={mockDateRangeDisplay(e)}
-                            teamCount={e.teamCount}
-                            divisionsNote={null}
-                            status={e.status}
-                            href={`/events/${encodeURIComponent(e.code)}`}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })
-              )}
-            </div>
+                <EventBrowseList rows={mockRows} />
+              </>
+            )}
           </>
         ) : null}
       </main>
