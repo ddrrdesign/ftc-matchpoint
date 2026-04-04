@@ -15,7 +15,7 @@ function statusPillClass(s: EventStatus): string {
 
 export type EventBrowseListRow = {
   rowKey: string;
-  /** FTC / Event Web season year in URLs (e.g. 2025). */
+  /** FTC / Event Web / Scout season label in URLs (Scout uses 2025 for Decode). */
   seasonYear: number;
   code: string;
   name: string;
@@ -25,7 +25,10 @@ export type EventBrowseListRow = {
   typeLine: string | null;
   teams: string;
   status: EventStatus;
-  internalHref: string;
+  /** In-app route or external URL (see primaryExternal). */
+  primaryHref: string;
+  primaryLabel: string;
+  primaryExternal: boolean;
   firstWebUrl: string | null;
   divisionsNote: string | null;
 };
@@ -103,12 +106,23 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3.5 pr-5 text-right align-top">
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <Link
-                      href={r.internalHref}
-                      className="rounded-lg border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/90 transition hover:bg-white/[0.1]"
-                    >
-                      Analytics
-                    </Link>
+                    {r.primaryExternal ? (
+                      <a
+                        href={r.primaryHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg border border-sky-400/30 bg-sky-500/12 px-3 py-1.5 text-xs font-medium text-sky-100/95 transition hover:bg-sky-500/20"
+                      >
+                        {r.primaryLabel}
+                      </a>
+                    ) : (
+                      <Link
+                        href={r.primaryHref}
+                        className="rounded-lg border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/90 transition hover:bg-white/[0.1]"
+                      >
+                        {r.primaryLabel}
+                      </Link>
+                    )}
                     {r.firstWebUrl ? (
                       <a
                         href={r.firstWebUrl}

@@ -1,5 +1,25 @@
 /** Subset of FTC Scout REST responses - api.ftcscout.org/rest/v1 */
 
+/** Row from `GET /events/search/:season` (matches GraphQL Event scalars subset). */
+export interface ScoutEventListItem {
+  season: number;
+  code: string;
+  divisionCode?: string | null;
+  name?: string | null;
+  remote?: boolean;
+  hybrid?: boolean;
+  type?: string | null;
+  regionCode?: string | null;
+  venue?: string | null;
+  address?: string | null;
+  country?: string | null;
+  state?: string | null;
+  city?: string | null;
+  start?: string | null;
+  end?: string | null;
+  published?: boolean;
+}
+
 export interface ScoutTeam {
   number: number;
   name?: string | null;

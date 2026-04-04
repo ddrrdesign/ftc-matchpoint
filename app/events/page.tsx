@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   EventBrowseList,
   type EventBrowseListRow,
@@ -29,10 +30,16 @@ import {
   teamCountCacheKey,
 } from "@/lib/ftc-api/service";
 import type { SeasonEventModelV2 } from "@/lib/ftc-api/types";
+import {
+  fetchScoutEventsForSeasons,
+  getEffectiveScoutSeason,
+  scoutEventWebUrl,
+} from "@/lib/ftc-scout/queries";
+import type { ScoutEventListItem } from "@/lib/ftc-scout/types";
 
 const OFFICIAL_EVENTS_URL = "https://ftc-events.firstinspires.org/#allevents";
+const SCOUT_HUB = "https://ftcscout.org";
 
-/** Max (season, code) pairs for which we load team totals (keeps the page fast). */
 const MAX_TEAM_PAIR_LOOKUPS = 100;
 
 function filterMockEvents(q: string): Event[] {
@@ -66,6 +73,59 @@ function filterApiEvents(
   });
 }
 
+function filterScoutEvents(events: ScoutEventListItem[], q: string) {
+  if (!q) return events;
+  return events.filter((e) => {
+    const hay = [
+      e.name,
+      e.code,
+      e.city,
+      e.state,
+      e.country,
+      e.venue,
+      e.regionCode,
+      e.type,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+function dedupeScoutEvents(items: ScoutEventListItem[]): ScoutEventListItem[] {
+  const seen = new Set<string>();
+  const out: ScoutEventListItem[] = [];
+  for (const e of items) {
+    const c = (e.code ?? "").trim();
+    if (!c) continue;
+    const k = `${e.season}-${c}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(e);
+  }
+  return out;
+}
+
+function scoutLocationLine(e: ScoutEventListItem): string {
+  const parts = [e.city, e.state, e.country].filter(Boolean);
+  return parts.length ? parts.join(", ") : e.venue?.trim() || "—";
+}
+
+function scoutVenueExtra(e: ScoutEventListItem): string | null {
+  const loc = scoutLocationLine(e);
+  const v = e.venue?.trim();
+  if (!v || v === loc) return null;
+  return v;
+}
+
+function scoutTypeLine(e: ScoutEventListItem): string | null {
+  const parts = [e.type?.trim()].filter(Boolean);
+  if (e.remote) parts.push("Remote");
+  if (e.hybrid) parts.push("Hybrid");
+  return parts.length ? parts.join(" · ") : null;
+}
+
 function mockDateRangeDisplay(e: Event): string {
   if (!e.startDate?.trim()) return "TBA";
   return (
@@ -78,6 +138,10 @@ function mockDateRangeDisplay(e: Event): string {
 
 function compareMockByStartDesc(a: Event, b: Event): number {
   return (b.startDate || "").localeCompare(a.startDate || "");
+}
+
+function compareScoutByStartDesc(a: ScoutEventListItem, b: ScoutEventListItem) {
+  return (b.start ?? "").localeCompare(a.start ?? "");
 }
 
 type Props = {
@@ -121,7 +185,7 @@ export default async function EventsPage({ searchParams }: Props) {
         message: "Could not load any season from the API.",
       };
     } else if (totalEvents === 0 && apiOn && okChunks.length > 0) {
-      /* all seasons empty — still use API mode with empty table */
+      /* empty seasons */
     }
   }
 
@@ -187,7 +251,9 @@ export default async function EventsPage({ searchParams }: Props) {
           typeLine: formatEventTypeLine(e),
           teams: teamN != null ? String(teamN) : "—",
           status: st,
-          internalHref: `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`,
+          primaryHref: `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`,
+          primaryLabel: "Analytics",
+          primaryExternal: false,
           firstWebUrl: code ? firstEventWebUrl(seasonYear, code) : null,
           divisionsNote:
             m.sourceRowCount > 1
@@ -197,37 +263,113 @@ export default async function EventsPage({ searchParams }: Props) {
       })
     : [];
 
-  const filteredMock = [...filterMockEvents(q)].sort(compareMockByStartDesc);
+  let scoutMerged: ScoutEventListItem[] = [];
+  let scoutFetchHadError = false;
+  if (!showApi) {
+    const anchor = await getEffectiveScoutSeason();
+    const scoutSeasons = [
+      ...new Set([anchor, anchor - 1, anchor - 2]),
+    ].filter((y) => y >= 2019);
+    const scoutResults = await fetchScoutEventsForSeasons(scoutSeasons);
+    for (let i = 0; i < scoutResults.length; i++) {
+      const r = scoutResults[i];
+      if (r?.ok) {
+        scoutMerged.push(...(r.data ?? []));
+      } else if (r && !r.ok) {
+        scoutFetchHadError = true;
+      }
+    }
+    scoutMerged = dedupeScoutEvents(scoutMerged);
+  }
 
-  const mockRows: EventBrowseListRow[] = !showApi
-    ? filteredMock.map((e) => {
-        const qs = new URLSearchParams();
-        qs.set("season", String(defaultSeason));
+  const scoutFiltered = filterScoutEvents(scoutMerged, q).sort(
+    compareScoutByStartDesc
+  );
+
+  /** Scout returned at least one event (before search filter). */
+  const scoutHasData = !showApi && scoutMerged.length > 0;
+
+  const scoutRows: EventBrowseListRow[] = scoutHasData && scoutFiltered.length > 0
+    ? scoutFiltered.map((e, i) => {
+        const code = (e.code ?? "").trim();
+        const seasonY = e.season;
+        const st = deriveEventStatus({
+          dateStart: e.start ?? undefined,
+          dateEnd: e.end ?? undefined,
+        });
+        const dates =
+          formatEventDateRange({
+            dateStart: e.start ?? undefined,
+            dateEnd: e.end ?? undefined,
+          }) ?? "TBA";
         return {
-          rowKey: e.id,
-          seasonYear: defaultSeason,
-          code: e.code,
-          name: e.name,
-          dates: mockDateRangeDisplay(e),
-          location: e.location,
-          venueExtra: null,
-          typeLine: e.firstInspiresUrl
-            ? "Demo · FIRST link → real page on firstinspires.org"
-            : null,
-          teams: String(e.teamCount),
-          status: e.status,
-          internalHref: `/events/${encodeURIComponent(e.code)}?${qs.toString()}`,
-          firstWebUrl:
-            e.firstInspiresUrl ??
-            (e.code ? firstEventWebUrl(defaultSeason, e.code) : null),
+          rowKey: `${seasonY}-${code}-${i}`,
+          seasonYear: seasonY,
+          code,
+          name: (e.name ?? code).trim() || "Event",
+          dates,
+          location: scoutLocationLine(e),
+          venueExtra: scoutVenueExtra(e),
+          typeLine: scoutTypeLine(e),
+          teams: "—",
+          status: st,
+          primaryHref: scoutEventWebUrl(seasonY, code),
+          primaryLabel: "Scout",
+          primaryExternal: true,
+          firstWebUrl: code ? firstEventWebUrl(seasonY, code) : null,
           divisionsNote: null,
         };
       })
     : [];
 
-  const totalShown = showApi ? apiRows.length : mockRows.length;
+  const filteredMock = [...filterMockEvents(q)].sort(compareMockByStartDesc);
+
+  const mockRows: EventBrowseListRow[] = filteredMock.map((e) => {
+    const qs = new URLSearchParams();
+    qs.set("season", String(defaultSeason));
+    return {
+      rowKey: e.id,
+      seasonYear: defaultSeason,
+      code: e.code,
+      name: e.name,
+      dates: mockDateRangeDisplay(e),
+      location: e.location,
+      venueExtra: null,
+      typeLine: e.firstInspiresUrl
+        ? "Demo · FIRST link → real page on firstinspires.org"
+        : null,
+      teams: String(e.teamCount),
+      status: e.status,
+      primaryHref: `/events/${encodeURIComponent(e.code)}?${qs.toString()}`,
+      primaryLabel: "Analytics",
+      primaryExternal: false,
+      firstWebUrl:
+        e.firstInspiresUrl ??
+        (e.code ? firstEventWebUrl(defaultSeason, e.code) : null),
+      divisionsNote: null,
+    };
+  });
+
+  const listSource: "first" | "scout" | "mock" = showApi
+    ? "first"
+    : scoutHasData
+      ? "scout"
+      : "mock";
+
+  const displayRows =
+    listSource === "first"
+      ? apiRows
+      : listSource === "scout"
+        ? scoutRows
+        : mockRows;
+
+  const totalShown = displayRows.length;
   const yearsLoaded = showApi
     ? [...new Set(succeededChunks.map((c) => c.season))].sort((a, b) => b - a)
+    : [];
+
+  const scoutSeasonsLoaded = scoutHasData
+    ? [...new Set(scoutMerged.map((e) => e.season))].sort((a, b) => b - a)
     : [];
 
   return (
@@ -242,37 +384,58 @@ export default async function EventsPage({ searchParams }: Props) {
             All competitions
           </h1>
           <p className="mt-2 text-xs text-white/35">
-            {showApi ? (
+            {listSource === "first" ? (
               <>
-                Loaded{" "}
-                <span className="text-white/50">{yearsLoaded.length}</span> API
-                season{yearsLoaded.length === 1 ? "" : "s"}:{" "}
+                Source:{" "}
+                <span className="text-white/55">FIRST FTC API</span> · seasons{" "}
                 <span className="font-mono text-white/55">
                   {yearsLoaded.join(", ")}
                 </span>
-                . Override with{" "}
-                <span className="font-mono">FTC_SEASON_YEARS</span> or{" "}
-                <span className="font-mono">FTC_SEASON_INDEX_SPAN</span>.
+              </>
+            ) : listSource === "scout" ? (
+              <>
+                Source:{" "}
+                <a
+                  href={SCOUT_HUB}
+                  className="text-sky-300/90 underline hover:text-sky-200"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  FTC Scout
+                </a>{" "}
+                public REST (same catalog as{" "}
+                <span className="font-mono text-white/45">/events/search</span>
+                ) · seasons{" "}
+                <span className="font-mono text-white/55">
+                  {scoutSeasonsLoaded.join(", ")}
+                </span>
               </>
             ) : (
-              <>Default season {defaultSeason} · demo rows when API is off.</>
+              <>Demo rows only · default season {defaultSeason}</>
             )}
           </p>
           <p className="mt-4 text-base leading-relaxed text-white/45">
-            Same event catalog as{" "}
+            Official registration and schedules:{" "}
             <a
               href={OFFICIAL_EVENTS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-violet-300/90 underline decoration-violet-400/40 underline-offset-2 hover:text-violet-200"
             >
-              FTC Event Web (all events)
+              FTC Event Web
             </a>
-            . Each <span className="text-white/55">FIRST</span> button opens that
-            row’s official page on firstinspires.org (
-            <span className="font-mono text-[11px] text-white/40">/season/code</span>
-            , not the list anchor). Analytics keeps you in this app with{" "}
-            <span className="font-mono text-[11px] text-white/40">?season=</span>.
+            . Scores and OPR context:{" "}
+            <a
+              href="https://ftcscout.org/api/rest"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-300/90 underline decoration-sky-400/35 underline-offset-2 hover:text-sky-200"
+            >
+              FTC Scout API
+            </a>
+            . <span className="text-white/55">FIRST</span> opens the
+            firstinspires.org event page; with FIRST API keys we also show{" "}
+            <span className="text-white/55">Analytics</span> inside this app.
           </p>
           {showApi && rowSources.length > MAX_TEAM_PAIR_LOOKUPS ? (
             <p className="mt-3 max-w-2xl text-xs text-white/35">
@@ -283,18 +446,34 @@ export default async function EventsPage({ searchParams }: Props) {
           ) : null}
         </header>
 
-        {!apiOn ? (
+        {listSource === "scout" ? (
+          <GlassCard className="mt-8 border-sky-400/25 bg-sky-500/10 p-4 text-sm text-sky-50/95">
+            <p className="font-medium text-sky-100">
+              Full calendar without FIRST API keys
+            </p>
+            <p className="mt-2 text-sky-100/85">
+              This table is loaded from{" "}
+              <span className="font-mono text-sky-50/90">api.ftcscout.org</span>{" "}
+              (no auth). Use <span className="font-semibold">Scout</span> for
+              matches and stats on ftcscout.org. Add{" "}
+              <span className="font-mono">FTC_API_USERNAME</span> +{" "}
+              <span className="font-mono">FTC_API_KEY</span> on the server to
+              enable in-app <span className="font-semibold">Analytics</span>{" "}
+              pages here.
+            </p>
+          </GlassCard>
+        ) : null}
+
+        {!apiOn && listSource === "mock" ? (
           <GlassCard className="mt-8 border-amber-400/30 bg-amber-500/10 p-5 text-sm leading-relaxed text-amber-50/95">
             <p className="font-semibold text-amber-100">
-              Demo mode: only 3 sample events
+              FTC Scout did not return events (offline or error)
             </p>
             <p className="mt-2 text-amber-100/80">
-              The full calendar is not loaded because{" "}
-              <span className="font-mono text-amber-50/90">FTC_API_USERNAME</span>{" "}
-              and{" "}
-              <span className="font-mono text-amber-50/90">FTC_API_KEY</span> are
-              not set (e.g. on Vercel → Project → Settings → Environment
-              Variables). Register for API access on{" "}
+              Showing 3 sample rows. For the real list, ensure the deploy can
+              reach <span className="font-mono">api.ftcscout.org</span>, or set{" "}
+              <span className="font-mono">FTC_API_*</span> for FIRST API. Register
+              at{" "}
               <a
                 href="https://ftc-events.firstinspires.org/services/API"
                 className="text-amber-200 underline hover:text-amber-100"
@@ -305,11 +484,20 @@ export default async function EventsPage({ searchParams }: Props) {
               </a>
               .
             </p>
-            <p className="mt-3 text-xs text-amber-200/70">
-              <span className="font-mono">FIRST</span> on demo rows opens a real
-              Event Web page where we mapped one (e.g. KZCMP for Central Asia).
-              <span className="font-mono"> Analytics</span> stays in this app
-              for the fictional codes (CA-CAS, …).
+            {scoutFetchHadError ? (
+              <p className="mt-2 text-xs text-amber-200/70">
+                At least one Scout season request failed — check network / API
+                status.
+              </p>
+            ) : null}
+          </GlassCard>
+        ) : null}
+
+        {apiOn && !showApi ? (
+          <GlassCard className="mt-8 border-amber-400/20 bg-amber-500/8 p-4 text-sm text-amber-100/90">
+            <p className="font-medium">FIRST API did not return event listings</p>
+            <p className="mt-2 text-amber-100/75">
+              Using FTC Scout below if available, otherwise demo rows.
             </p>
           </GlassCard>
         ) : null}
@@ -320,7 +508,7 @@ export default async function EventsPage({ searchParams }: Props) {
               Could not load events ({apiError.status})
             </p>
             <p className="mt-2 text-red-200/70">
-              Showing demo rows below if available.
+              Falling back to Scout or demo data.
             </p>
           </GlassCard>
         )}
@@ -354,46 +542,38 @@ export default async function EventsPage({ searchParams }: Props) {
           </div>
         </form>
 
-        {showApi ? (
+        {listSource === "first" && rowSources.length === 0 ? (
+          <p className="mt-10 text-white/50">No events match “{q}”.</p>
+        ) : listSource === "scout" && scoutFiltered.length === 0 ? (
+          <p className="mt-10 text-white/50">
+            No events match “{q}”.{" "}
+            <Link
+              href="/events"
+              className="text-violet-300 underline hover:text-violet-200"
+            >
+              Clear search
+            </Link>
+          </p>
+        ) : listSource === "mock" && filteredMock.length === 0 ? (
+          <p className="mt-10 text-white/50">No demo events match “{q}”.</p>
+        ) : (
           <>
-            {rowSources.length === 0 ? (
-              <p className="mt-10 text-white/50">No events match “{q}”.</p>
-            ) : (
-              <>
-                <p className="mt-6 text-sm text-white/40">
-                  Showing{" "}
-                  <span className="font-medium text-white/60 tabular-nums">
-                    {totalShown}
-                  </span>{" "}
-                  {totalShown === 1 ? "row" : "rows"}
-                  {q ? ` for “${q}”` : ""}
-                </p>
-                <EventBrowseList rows={apiRows} />
-              </>
-            )}
+            <p className="mt-6 text-sm text-white/40">
+              Showing{" "}
+              <span className="font-medium text-white/60 tabular-nums">
+                {totalShown}
+              </span>{" "}
+              {totalShown === 1 ? "row" : "rows"}
+              {q ? ` for “${q}”` : ""}
+              {listSource === "first"
+                ? " · FIRST API"
+                : listSource === "scout"
+                  ? " · FTC Scout"
+                  : " · demo"}
+            </p>
+            <EventBrowseList rows={displayRows} />
           </>
-        ) : null}
-
-        {!showApi || apiError ? (
-          <>
-            {filteredMock.length === 0 ? (
-              <p className="mt-10 text-white/50">
-                No demo events match “{q}”.
-              </p>
-            ) : (
-              <>
-                <p className="mt-6 text-sm text-white/40">
-                  Demo data ·{" "}
-                  <span className="tabular-nums font-medium text-white/55">
-                    {totalShown}
-                  </span>{" "}
-                  {totalShown === 1 ? "row" : "rows"}
-                </p>
-                <EventBrowseList rows={mockRows} />
-              </>
-            )}
-          </>
-        ) : null}
+        )}
       </main>
     </PageShell>
   );

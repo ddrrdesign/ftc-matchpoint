@@ -5,6 +5,7 @@ import { cache } from "react";
 import { getFtcScoutPredictorEventCode, getFtcScoutSeason } from "./env";
 import type {
   QuickStats,
+  ScoutEventListItem,
   ScoutTeam,
   TeamEventParticipation,
   TeamEventStatsDetail,
@@ -38,6 +39,33 @@ export const getEffectiveScoutSeason = cache(async (): Promise<number> => {
   }
   return preferred;
 });
+
+const SCOUT_EVENTS_SEARCH_LIMIT = 4000;
+
+/** Public REST — same catalog as https://ftcscout.org/events/{season} */
+export async function fetchScoutEventsSearch(
+  season: number,
+  opts?: { limit?: number; revalidate?: number }
+) {
+  const limit = Math.min(
+    Math.max(opts?.limit ?? SCOUT_EVENTS_SEARCH_LIMIT, 1),
+    5000
+  );
+  return scoutGet<ScoutEventListItem[]>(
+    `/events/search/${season}?limit=${limit}`,
+    { revalidate: opts?.revalidate ?? 900 }
+  );
+}
+
+export function scoutEventWebUrl(season: number, code: string): string {
+  const c = encodeURIComponent(code.trim());
+  return `https://ftcscout.org/events/${season}/${c}`;
+}
+
+export async function fetchScoutEventsForSeasons(seasons: number[]) {
+  const unique = [...new Set(seasons)].filter((y) => y >= 2018 && y <= 2100);
+  return Promise.all(unique.map((s) => fetchScoutEventsSearch(s)));
+}
 
 export async function fetchScoutTeam(
   teamNumber: number,
