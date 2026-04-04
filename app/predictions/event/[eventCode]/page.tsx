@@ -134,8 +134,13 @@ export default async function EventPredictionPage({
 
   const registered = teamsList
     .map((t) => t.teamNumber)
-    .filter((n): n is number => n != null && n > 0);
+    .filter((n): n is number => n != null && n > 0)
+    .sort((a, b) => a - b);
   const roster = new Set(registered);
+  const hasRoster = registered.length > 0;
+  /** Browser autocomplete: very large lists hurt DOM; cap keeps inputs snappy. */
+  const rosterDatalistId =
+    hasRoster && registered.length <= 350 ? "prediction-event-roster" : null;
   const rankings = rankRes?.ok ? (rankRes.data.rankings ?? []) : [];
   const played = countPlayedMatches(matches);
   const statsMap = buildEventStatsMap(rankings, matches, registered);
@@ -158,9 +163,19 @@ export default async function EventPredictionPage({
   let prediction = null;
 
   if (red && blue) {
-    const outsiders = [...red, ...blue].filter((n) => !roster.has(n));
-    if (outsiders.length > 0) {
-      invalidMsg = `Not registered at this event: ${outsiders.join(", ")}. Only teams on the official list can be used.`;
+    if (hasRoster) {
+      const outsiders = [...red, ...blue].filter((n) => !roster.has(n));
+      if (outsiders.length > 0) {
+        invalidMsg = `Not registered at this event: ${outsiders.join(", ")}. Only teams on the official FIRST roster for this competition can be used.`;
+      } else {
+        prediction = predictAllianceMatchup(
+          [red[0]!, red[1]!],
+          [blue[0]!, blue[1]!],
+          statsMap,
+          played,
+          avgTeamMatches
+        );
+      }
     } else {
       prediction = predictAllianceMatchup(
         [red[0]!, red[1]!],
@@ -217,6 +232,9 @@ export default async function EventPredictionPage({
           </p>
           <p className="mt-2 break-words text-sm text-white/50">{location}</p>
           <p className="mt-3 text-xs leading-relaxed text-white/40">
+            {hasRoster
+              ? `${registered.length} teams on official FIRST roster · `
+              : ""}
             {played} matches with scores in API · status: {status}
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -238,6 +256,87 @@ export default async function EventPredictionPage({
             </a>
           </div>
         </div>
+
+        {hasRoster ? (
+          <section
+            id="event-registered-teams"
+            className="mt-8 max-w-2xl scroll-mt-24 sm:mt-10"
+            aria-labelledby="event-roster-heading"
+          >
+            <GlassCard className="border-white/[0.08] p-4 sm:p-5">
+              <h2
+                id="event-roster-heading"
+                className="text-sm font-semibold text-white/85"
+              >
+                Registered teams
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-white/45">
+                Official FIRST team list for this event. The prediction form below
+                only accepts numbers from this roster ({registered.length} total).
+              </p>
+              <ul className="mt-4 max-h-[min(50vh,22rem)] list-none space-y-0 overflow-y-auto overscroll-y-contain rounded-xl border border-white/[0.06] bg-black/20 p-3 sm:columns-2 sm:gap-x-6 sm:p-4">
+                {teamsList
+                  .filter((t) => t.teamNumber != null && t.teamNumber > 0)
+                  .sort((a, b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0))
+                  .map((t) => {
+                    const num = t.teamNumber!;
+                    const label =
+                      t.nameShort?.trim() ||
+                      t.nameFull?.trim() ||
+                      null;
+                    return (
+                      <li
+                        key={num}
+                        className="perf-list-row break-inside-avoid py-1.5 sm:py-1"
+                      >
+                        <Link
+                          href={`/teams/${num}`}
+                          prefetch={false}
+                          className="group inline-flex flex-wrap items-baseline gap-x-2 text-[13px] sm:text-sm"
+                        >
+                          <span className="font-mono font-medium text-violet-200/95 group-hover:text-violet-100">
+                            {num}
+                          </span>
+                          {label ? (
+                            <span className="text-white/40 group-hover:text-white/55">
+                              {label}
+                            </span>
+                          ) : null}
+                        </Link>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </GlassCard>
+          </section>
+        ) : (
+          <GlassCard className="mt-8 max-w-2xl border-amber-400/25 bg-amber-500/[0.07] p-4 text-sm text-amber-100/90 sm:mt-10">
+            <p className="font-medium text-amber-50">
+              Team roster not available from FIRST
+            </p>
+            <p className="mt-2 text-amber-100/75">
+              The API returned no teams for this event code, so we cannot verify
+              registration. Predictions will still run; double-check numbers on{" "}
+              <a
+                href={firstUrl}
+                className="text-amber-200 underline hover:text-amber-50"
+                target="_blank"
+                rel="noreferrer"
+              >
+                FIRST Event Web
+              </a>
+              .
+            </p>
+          </GlassCard>
+        )}
+
+        {rosterDatalistId ? (
+          <datalist id={rosterDatalistId}>
+            {registered.map((n) => (
+              <option key={n} value={String(n)} />
+            ))}
+          </datalist>
+        ) : null}
 
         <GlassCard className="mt-8 max-w-2xl border-white/[0.08] p-4 text-sm text-white/60 sm:mt-10 sm:p-5">
           <p className="font-medium text-white/80">How this model behaves</p>
@@ -261,6 +360,18 @@ export default async function EventPredictionPage({
 
         <form className="mt-8 max-w-xl space-y-4 sm:mt-10" action={formAction} method="get">
           <input type="hidden" name="season" value={String(season)} />
+          {hasRoster ? (
+            <p className="text-xs leading-relaxed text-white/45">
+              Use only team numbers from the{" "}
+              <a
+                href="#event-registered-teams"
+                className="text-violet-300/90 underline hover:text-violet-200"
+              >
+                registered list
+              </a>{" "}
+              above — other numbers are rejected after submit.
+            </p>
+          ) : null}
           <div className="space-y-4">
             <div className="rounded-2xl border border-red-400/25 bg-red-500/[0.06] p-4 sm:p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-200/75">
@@ -279,6 +390,7 @@ export default async function EventPredictionPage({
                     autoComplete="off"
                     defaultValue={fieldDefaults.r1}
                     placeholder="Team number"
+                    list={rosterDatalistId ?? undefined}
                     className="mt-1.5 min-h-[48px] w-full rounded-xl border border-red-400/30 bg-red-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-red-400/50 sm:min-h-12 sm:text-sm"
                   />
                 </div>
@@ -294,6 +406,7 @@ export default async function EventPredictionPage({
                     autoComplete="off"
                     defaultValue={fieldDefaults.r2}
                     placeholder="Team number"
+                    list={rosterDatalistId ?? undefined}
                     className="mt-1.5 min-h-[48px] w-full rounded-xl border border-red-400/30 bg-red-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-red-400/50 sm:min-h-12 sm:text-sm"
                   />
                 </div>
@@ -316,6 +429,7 @@ export default async function EventPredictionPage({
                     autoComplete="off"
                     defaultValue={fieldDefaults.b1}
                     placeholder="Team number"
+                    list={rosterDatalistId ?? undefined}
                     className="mt-1.5 min-h-[48px] w-full rounded-xl border border-blue-400/30 bg-blue-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-blue-400/50 sm:min-h-12 sm:text-sm"
                   />
                 </div>
@@ -331,6 +445,7 @@ export default async function EventPredictionPage({
                     autoComplete="off"
                     defaultValue={fieldDefaults.b2}
                     placeholder="Team number"
+                    list={rosterDatalistId ?? undefined}
                     className="mt-1.5 min-h-[48px] w-full rounded-xl border border-blue-400/30 bg-blue-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-blue-400/50 sm:min-h-12 sm:text-sm"
                   />
                 </div>
