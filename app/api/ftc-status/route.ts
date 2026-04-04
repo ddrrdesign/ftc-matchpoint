@@ -19,12 +19,12 @@ export async function GET() {
   let message: string;
   if (!credentialsPresent) {
     message =
-      "Сервер не видит FTC_API_USERNAME / FTC_API_KEY (проверьте Vercel → Env → Production и Redeploy).";
+      "Сервер не видит FTC_API_USERNAME / FTC_API_KEY (проверьте Vercel -> Env -> Production и Redeploy).";
   } else if (listingsOk) {
     message = "Ключи на месте, FIRST API отвечает на список ивентов.";
   } else {
     message =
-      "Ключи заданы, но запрос к API неудачен — проверьте значения, год сезона (FTC_SEASON_YEAR) и лимиты FIRST.";
+      "Ключи заданы, но запрос к API неудачен - проверьте значения, год сезона (FTC_SEASON_YEAR) и лимиты FIRST.";
   }
 
   return NextResponse.json(
@@ -33,6 +33,11 @@ export async function GET() {
       listingsOk,
       message,
     },
-    { headers: { "Cache-Control": "no-store, max-age=0" } }
+    {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store, max-age=0",
+      },
+    }
   );
 }
