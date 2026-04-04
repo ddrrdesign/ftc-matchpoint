@@ -11,8 +11,8 @@ type Props = {
 export function PredictionShowcase({ match, prediction }: Props) {
   const redPct = pct(prediction.redWinProbability);
   const bluePct = pct(prediction.blueWinProbability);
-  const r = match.red.teamNumbers.join(",");
-  const b = match.blue.teamNumbers.join(",");
+  const [r1, r2] = match.red.teamNumbers;
+  const [b1, b2] = match.blue.teamNumbers;
 
   return (
     <section id="predictions" className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 sm:pb-16">
@@ -92,7 +92,7 @@ export function PredictionShowcase({ match, prediction }: Props) {
           </ul>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href={`/predictions?r=${encodeURIComponent(r)}&b=${encodeURIComponent(b)}`}
+              href={`/predictions?r1=${encodeURIComponent(String(r1))}&r2=${encodeURIComponent(String(r2))}&b1=${encodeURIComponent(String(b1))}&b2=${encodeURIComponent(String(b2))}`}
               className="inline-flex rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/25"
             >
               Open in Predictor

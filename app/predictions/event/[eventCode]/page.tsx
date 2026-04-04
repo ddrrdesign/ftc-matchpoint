@@ -24,17 +24,22 @@ import {
   countPlayedMatches,
   predictAllianceMatchup,
 } from "@/lib/predictions/event-prediction";
+import {
+  alliancesQueryComplete,
+  alliancesQueryTouched,
+  defaultAllianceFieldValues,
+  parseAlliancesFromQuery,
+  type AllianceQuery,
+} from "@/lib/predictions/alliance-params";
 
 export const revalidate = 60;
 
-function parsePair(raw: string | undefined): number[] | null {
-  if (!raw?.trim()) return null;
-  const parts = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
-  const nums = parts.map((p) => Number.parseInt(p, 10));
-  if (nums.length !== 2 || nums.some((n) => Number.isNaN(n) || n <= 0)) {
-    return null;
-  }
-  return nums;
+function firstStr(
+  v: string | string[] | undefined
+): string {
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) return v[0] ?? "";
+  return "";
 }
 
 function richnessLabel(r: string): string {
@@ -54,6 +59,10 @@ type Search = {
   season?: string | string[];
   r?: string | string[];
   b?: string | string[];
+  r1?: string | string[];
+  r2?: string | string[];
+  b1?: string | string[];
+  b2?: string | string[];
 };
 
 export default async function EventPredictionPage({
@@ -70,6 +79,16 @@ export default async function EventPredictionPage({
         <main className="mx-auto min-w-0 max-w-lg px-3 py-12 sm:px-4 sm:py-16">
           <GlassCard className="p-6 text-sm text-white/70">
             <p>FIRST API keys are required for event-scoped predictions.</p>
+            <p className="mt-3 text-white/55">
+              Полная пошаговая инструкция (ключи, Vercel, проверка) — на{" "}
+              <Link
+                href="/predictions#first-api-setup"
+                className="font-medium text-violet-300 hover:underline"
+              >
+                Predictions → блок «Как подключить FIRST Events API»
+              </Link>
+              .
+            </p>
             <Link
               href="/predictions#event-analysis"
               className="mt-4 inline-block text-violet-300 hover:underline"
@@ -118,12 +137,17 @@ export default async function EventPredictionPage({
   const scoresByTeam = allianceScoresByTeam(matches);
   const avgTeamMatches = avgMatchesPerTeamOnRoster(scoresByTeam, registered);
 
-  const rStr = typeof sp.r === "string" ? sp.r : Array.isArray(sp.r) ? sp.r[0] : "";
-  const bStr = typeof sp.b === "string" ? sp.b : Array.isArray(sp.b) ? sp.b[0] : "";
-
-  const red = parsePair(rStr);
-  const blue = parsePair(bStr);
-  const tried = Boolean(rStr.trim() || bStr.trim());
+  const aq: AllianceQuery = {
+    r: firstStr(sp.r),
+    b: firstStr(sp.b),
+    r1: firstStr(sp.r1),
+    r2: firstStr(sp.r2),
+    b1: firstStr(sp.b1),
+    b2: firstStr(sp.b2),
+  };
+  const fieldDefaults = defaultAllianceFieldValues(aq);
+  const { red, blue } = parseAlliancesFromQuery(aq);
+  const tried = alliancesQueryTouched(aq);
 
   let invalidMsg: string | null = null;
   let prediction = null;
@@ -141,8 +165,9 @@ export default async function EventPredictionPage({
         avgTeamMatches
       );
     }
-  } else if (tried) {
-    invalidMsg = "Enter exactly two positive team numbers per side (comma or space).";
+  } else if (tried && !alliancesQueryComplete(aq)) {
+    invalidMsg =
+      "Enter four valid team numbers — one per field (legacy ?r=…&b=… pairs still work).";
   }
 
   const formAction = `/predictions/event/${encodeURIComponent(eventCode)}`;
@@ -216,32 +241,80 @@ export default async function EventPredictionPage({
 
         <form className="mt-8 max-w-xl space-y-4 sm:mt-10" action={formAction} method="get">
           <input type="hidden" name="season" value={String(season)} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="min-w-0">
-              <label htmlFor="r" className="text-xs text-red-200/70">
-                Red alliance (2 teams at this event)
-              </label>
-              <input
-                id="r"
-                name="r"
-                type="text"
-                defaultValue={rStr}
-                placeholder="e.g. 12345, 12346"
-                className="mt-1 min-h-[48px] w-full rounded-xl border border-red-400/25 bg-red-500/[0.07] px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-red-400/45 sm:min-h-12 sm:text-sm"
-              />
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-red-400/25 bg-red-500/[0.06] p-4 sm:p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-200/75">
+                Red alliance
+              </p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label htmlFor="ev-r1" className="text-xs text-red-200/70">
+                    Team 1
+                  </label>
+                  <input
+                    id="ev-r1"
+                    name="r1"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    defaultValue={fieldDefaults.r1}
+                    placeholder="Team number"
+                    className="mt-1.5 min-h-[48px] w-full rounded-xl border border-red-400/30 bg-red-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-red-400/50 sm:min-h-12 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ev-r2" className="text-xs text-red-200/70">
+                    Team 2
+                  </label>
+                  <input
+                    id="ev-r2"
+                    name="r2"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    defaultValue={fieldDefaults.r2}
+                    placeholder="Team number"
+                    className="mt-1.5 min-h-[48px] w-full rounded-xl border border-red-400/30 bg-red-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-red-400/50 sm:min-h-12 sm:text-sm"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="min-w-0">
-              <label htmlFor="b" className="text-xs text-blue-200/70">
-                Blue alliance (2 teams at this event)
-              </label>
-              <input
-                id="b"
-                name="b"
-                type="text"
-                defaultValue={bStr}
-                placeholder="e.g. 12347, 12348"
-                className="mt-1 min-h-[48px] w-full rounded-xl border border-blue-400/25 bg-blue-500/[0.07] px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-blue-400/45 sm:min-h-12 sm:text-sm"
-              />
+            <div className="rounded-2xl border border-blue-400/25 bg-blue-500/[0.06] p-4 sm:p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-200/75">
+                Blue alliance
+              </p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label htmlFor="ev-b1" className="text-xs text-blue-200/70">
+                    Team 1
+                  </label>
+                  <input
+                    id="ev-b1"
+                    name="b1"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    defaultValue={fieldDefaults.b1}
+                    placeholder="Team number"
+                    className="mt-1.5 min-h-[48px] w-full rounded-xl border border-blue-400/30 bg-blue-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-blue-400/50 sm:min-h-12 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ev-b2" className="text-xs text-blue-200/70">
+                    Team 2
+                  </label>
+                  <input
+                    id="ev-b2"
+                    name="b2"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    defaultValue={fieldDefaults.b2}
+                    placeholder="Team number"
+                    className="mt-1.5 min-h-[48px] w-full rounded-xl border border-blue-400/30 bg-blue-950/20 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 outline-none focus:border-blue-400/50 sm:min-h-12 sm:text-sm"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <button

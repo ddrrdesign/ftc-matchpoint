@@ -4,7 +4,14 @@ import { OverallPredictorPanel } from "@/components/predictions/overall-predicto
 
 export const revalidate = 120;
 
-type Search = { r?: string; b?: string };
+type Search = {
+  r?: string;
+  b?: string;
+  r1?: string;
+  r2?: string;
+  b1?: string;
+  b2?: string;
+};
 
 export default async function PredictorPage({
   searchParams,
