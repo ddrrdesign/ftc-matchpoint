@@ -128,7 +128,7 @@ export default async function TeamDetailPage({ params }: Props) {
               team search
             </Link>
             ,{" "}
-            <Link href="/predictor" className="text-violet-300 hover:underline">
+            <Link href="/predictions" className="text-violet-300 hover:underline">
               Predictor
             </Link>
             , or check the number on{" "}
@@ -166,7 +166,7 @@ export default async function TeamDetailPage({ params }: Props) {
     <PageShell>
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-10 md:py-14">
-        <Link href="/predictor" className="text-sm text-violet-300/80">
+        <Link href="/predictions" className="text-sm text-violet-300/80">
           ← Predictor
         </Link>
 

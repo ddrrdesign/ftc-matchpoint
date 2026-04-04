@@ -29,6 +29,27 @@ export function getFtcSeasonYearsForEventIndex(): number[] {
   return Array.from({ length: span }, (_, i) => anchor - i);
 }
 
+/**
+ * API season years used for the Predictions “pick an event” catalog.
+ * Defaults to the configured FTC season year plus the previous year (FIRST
+ * sometimes keys the same game under adjacent integers). Override with
+ * `FTC_PREDICTIONS_API_SEASONS=2025,2024` (comma-separated, newest first).
+ */
+export function getFtcSeasonYearsForPredictionsCatalog(): number[] {
+  const raw = process.env.FTC_PREDICTIONS_API_SEASONS?.trim();
+  if (raw) {
+    const ys = raw
+      .split(/[\s,]+/)
+      .map((p) => Number.parseInt(p.trim(), 10))
+      .filter((n) => !Number.isNaN(n) && n >= 1990 && n <= 2100);
+    if (ys.length) return [...new Set(ys)].sort((a, b) => b - a);
+  }
+  const y = getFtcSeasonYear();
+  return [...new Set([y, y - 1])]
+    .filter((n) => n >= 2000 && n <= 2100)
+    .sort((a, b) => b - a);
+}
+
 /** Optional `?season=` on event detail — must stay in sync with API/Event Web. */
 export function parseFtcSeasonQueryParam(
   raw: string | string[] | undefined

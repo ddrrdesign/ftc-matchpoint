@@ -26,7 +26,7 @@ export type EventBrowseListRow = {
   typeLine: string | null;
   teams: string;
   status: EventStatus;
-  /** In-app event page (card tap + Analytics). */
+  /** In-app event page (Analytics button only; card body is not a link). */
   detailHref: string;
   /** Scout or external primary action URL when `primaryExternal`. */
   primaryHref: string;
@@ -36,14 +36,13 @@ export type EventBrowseListRow = {
   divisionsNote: string | null;
 };
 
+const actionBtnBase =
+  "touch-manipulation inline-flex min-h-[44px] cursor-pointer select-none items-center justify-center rounded-xl border px-3 py-2 text-center text-xs font-semibold shadow-sm transition hover:brightness-110 active:scale-[0.98] sm:min-h-[44px] sm:px-4 sm:text-sm";
+
 function MobileEventCard({ r }: { r: EventBrowseListRow }) {
   return (
     <li className="min-w-0 border-b border-white/[0.06] last:border-b-0">
-      <Link
-        prefetch
-        href={r.detailHref}
-        className="block min-w-0 px-3 py-3 transition active:bg-white/[0.04] sm:px-5 sm:py-4"
-      >
+      <div className="min-w-0 px-3 py-3 sm:px-5 sm:py-4">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-2 gap-y-1">
           <div className="min-w-0 flex-1">
             <p className="break-words text-[15px] font-semibold leading-snug text-white/95 sm:text-base">
@@ -76,14 +75,14 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
           Teams{" "}
           <span className="font-medium tabular-nums text-white/65">{r.teams}</span>
         </p>
-      </Link>
+      </div>
       <div className="flex min-w-0 flex-wrap gap-2 px-3 pb-3 sm:gap-2 sm:px-5 sm:pb-4">
         {r.primaryExternal ? (
           <a
             href={r.primaryHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="touch-manipulation inline-flex min-h-[40px] flex-1 select-none items-center justify-center rounded-lg border border-sky-400/35 bg-sky-500/14 px-3 py-2 text-center text-xs font-semibold text-sky-100/95 transition-transform duration-100 active:scale-[0.98] active:bg-sky-500/28 sm:min-h-[44px] sm:flex-none sm:rounded-xl sm:px-4 sm:text-sm"
+            className={`${actionBtnBase} flex-1 border-sky-400/40 bg-sky-500/18 text-sky-100/95 hover:bg-sky-500/26 sm:flex-none`}
           >
             {r.primaryLabel}
           </a>
@@ -91,7 +90,7 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
           <Link
             prefetch
             href={r.detailHref}
-            className="touch-manipulation inline-flex min-h-[40px] flex-1 select-none items-center justify-center rounded-lg border border-white/14 bg-white/[0.07] px-3 py-2 text-center text-xs font-semibold text-white/90 transition-transform duration-100 active:scale-[0.98] active:bg-white/[0.12] sm:min-h-[44px] sm:flex-none sm:rounded-xl sm:px-4 sm:text-sm"
+            className={`${actionBtnBase} flex-1 border-white/18 bg-white/[0.09] text-white/92 hover:bg-white/[0.14] sm:flex-none`}
           >
             {r.primaryLabel}
           </Link>
@@ -102,7 +101,7 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
             target="_blank"
             rel="noopener noreferrer"
             title="FTC Event Web — all events"
-            className="touch-manipulation inline-flex min-h-[40px] flex-1 select-none items-center justify-center rounded-lg border border-violet-400/30 bg-violet-500/12 px-3 py-2 text-center text-xs font-semibold text-violet-200/95 transition-transform duration-100 active:scale-[0.98] active:bg-violet-500/26 sm:min-h-[44px] sm:flex-none sm:rounded-xl sm:px-4 sm:text-sm"
+            className={`${actionBtnBase} flex-1 border-violet-400/40 bg-violet-500/16 text-violet-200/95 hover:bg-violet-500/24 sm:flex-none`}
           >
             FIRST
           </a>
@@ -143,17 +142,10 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
           </thead>
           <tbody className="divide-y divide-white/[0.06]">
             {rows.map((r) => (
-              <tr
-                key={r.rowKey}
-                className="transition-colors hover:bg-white/[0.02]"
-              >
+              <tr key={r.rowKey}>
                 <td className="px-4 py-3.5 pl-5 align-top">
-                  <Link
-                    prefetch
-                    href={r.detailHref}
-                    className="group block rounded-lg outline-none ring-violet-500/40 focus-visible:ring-2"
-                  >
-                    <p className="font-semibold leading-snug text-white/92 group-hover:text-white">
+                  <div className="rounded-lg">
+                    <p className="font-semibold leading-snug text-white/92">
                       {r.name}
                     </p>
                     <p className="mt-1 font-mono text-xs text-violet-300/75">
@@ -167,7 +159,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         {r.divisionsNote}
                       </p>
                     ) : null}
-                  </Link>
+                  </div>
                 </td>
                 <td className="whitespace-nowrap px-3 py-3.5 text-center align-top text-xs tabular-nums text-white/55">
                   {formatFtcSeasonRangeLabel(r.seasonYear)}
@@ -200,7 +192,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         href={r.primaryHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="touch-manipulation inline-flex min-h-[36px] select-none items-center rounded-lg border border-sky-400/30 bg-sky-500/12 px-3 py-1.5 text-xs font-semibold text-sky-100/95 transition-transform duration-100 hover:bg-sky-500/20 active:scale-[0.97] active:bg-sky-500/28"
+                        className="touch-manipulation inline-flex min-h-[40px] cursor-pointer select-none items-center rounded-xl border border-sky-400/40 bg-sky-500/16 px-3.5 py-2 text-xs font-semibold text-sky-100/95 shadow-sm transition hover:brightness-110 active:scale-[0.97]"
                       >
                         {r.primaryLabel}
                       </a>
@@ -208,7 +200,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                       <Link
                         prefetch
                         href={r.detailHref}
-                        className="touch-manipulation inline-flex min-h-[36px] select-none items-center rounded-lg border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/90 transition-transform duration-100 hover:bg-white/[0.1] active:scale-[0.97] active:bg-white/[0.14]"
+                        className="touch-manipulation inline-flex min-h-[40px] cursor-pointer select-none items-center rounded-xl border border-white/18 bg-white/[0.09] px-3.5 py-2 text-xs font-semibold text-white/92 shadow-sm transition hover:brightness-110 active:scale-[0.97]"
                       >
                         {r.primaryLabel}
                       </Link>
@@ -219,7 +211,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="FTC Event Web — all events"
-                        className="touch-manipulation inline-flex min-h-[36px] select-none items-center rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-200/90 transition-transform duration-100 hover:bg-violet-500/18 active:scale-[0.97] active:bg-violet-500/26"
+                        className="touch-manipulation inline-flex min-h-[40px] cursor-pointer select-none items-center rounded-xl border border-violet-400/40 bg-violet-500/14 px-3.5 py-2 text-xs font-semibold text-violet-200/95 shadow-sm transition hover:brightness-110 active:scale-[0.97]"
                       >
                         FIRST
                       </a>

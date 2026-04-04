@@ -15,6 +15,7 @@ import {
   matchLabel,
   teamsToAlliances,
 } from "@/lib/ftc-api/service";
+import { matchHasFinalScores } from "@/lib/ftc-api/match-utils";
 import {
   deriveEventStatus,
   formatEventLocation,
@@ -83,16 +84,14 @@ export function EventDetailApi({
   const typeLine = formatEventTypeLine(event);
   const formatChips = eventFormatChips(event);
   const name = event.name ?? eventCode;
-  const played = matches.filter(
-    (m) =>
-      m.scoreRedFinal != null &&
-      m.scoreBlueFinal != null &&
-      m.actualStartTime
-  );
+  const played = matches.filter(matchHasFinalScores);
   played.sort((a, b) => {
     const ta = new Date(a.actualStartTime ?? 0).getTime();
     const tb = new Date(b.actualStartTime ?? 0).getTime();
-    return tb - ta;
+    if (tb !== ta) return tb - ta;
+    const na = (a.matchNumber ?? 0) + (a.series ?? 0) * 1e6;
+    const nb = (b.matchNumber ?? 0) + (b.series ?? 0) * 1e6;
+    return nb - na;
   });
   const latest = played.slice(0, 50);
 

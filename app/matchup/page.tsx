@@ -11,5 +11,5 @@ export default async function MatchupRedirect({ searchParams }: Props) {
   if (typeof sp.r === "string" && sp.r.trim()) q.set("r", sp.r);
   if (typeof sp.b === "string" && sp.b.trim()) q.set("b", sp.b);
   const s = q.toString();
-  redirect(s ? `/predictor?${s}` : "/predictor");
+  redirect(s ? `/predictions?${s}` : "/predictions");
 }

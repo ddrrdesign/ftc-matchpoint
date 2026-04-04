@@ -92,7 +92,7 @@ export function PredictionShowcase({ match, prediction }: Props) {
           </ul>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href={`/predictor?r=${encodeURIComponent(r)}&b=${encodeURIComponent(b)}`}
+              href={`/predictions?r=${encodeURIComponent(r)}&b=${encodeURIComponent(b)}`}
               className="inline-flex rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/25"
             >
               Open in Predictor

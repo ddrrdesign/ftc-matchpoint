@@ -12,7 +12,11 @@ import type {
   SeasonTeamListingsV2,
   SeasonTeamModelV2,
 } from "./types";
-import { matchLabel, normalizeTournamentQuery, teamsToAlliances } from "./match-utils";
+import {
+  matchLabel,
+  normalizeTournamentQuery,
+  teamsToAlliances,
+} from "./match-utils";
 
 export async function fetchEventListings(
   season?: number,
@@ -102,16 +106,50 @@ export async function fetchEventAwards(season: number, eventCode: string) {
   return ftcGet<AwardsModelV2>(`/v2.0/${season}/awards/${enc}`);
 }
 
+/** FTC match-results API slices by match number (`start`–`end`, inclusive); default window is only 0–999. */
+const MATCH_NUMBER_PAGE_SIZE = 1000;
+const MAX_MATCH_NUMBER_PAGES = 25;
+
 export async function fetchMatches(
   season: number,
   eventCode: string,
-  level: "qual" | "playoff"
+  level: "qual" | "playoff",
+  matchNumberRange?: { start: number; end: number }
 ) {
   const enc = encodeURIComponent(eventCode);
   const q = new URLSearchParams({ tournamentLevel: level });
+  if (matchNumberRange) {
+    q.set("start", String(matchNumberRange.start));
+    q.set("end", String(matchNumberRange.end));
+  }
   return ftcGet<EventMatchResultsV2>(
     `/v2.0/${season}/matches/${enc}?${q}`
   );
+}
+
+async function fetchMatchesAllInLevel(
+  season: number,
+  eventCode: string,
+  level: "qual" | "playoff"
+): Promise<MatchResultModelV2[]> {
+  const acc: MatchResultModelV2[] = [];
+  const seen = new Set<string>();
+  for (let page = 0; page < MAX_MATCH_NUMBER_PAGES; page++) {
+    const start = page * MATCH_NUMBER_PAGE_SIZE;
+    const end = start + MATCH_NUMBER_PAGE_SIZE - 1;
+    const res = await fetchMatches(season, eventCode, level, { start, end });
+    if (!res?.ok) break;
+    const batch = res.data.matches ?? [];
+    if (batch.length === 0) break;
+    for (const m of batch) {
+      const k = `${level}:${m.series ?? 0}:${m.matchNumber ?? -1}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      acc.push(m);
+    }
+    if (batch.length < MATCH_NUMBER_PAGE_SIZE) break;
+  }
+  return acc;
 }
 
 export async function fetchTeamCountAtEvent(
@@ -243,19 +281,19 @@ export async function fetchOneMatch(
   return list[0] ?? null;
 }
 
-/** All played matches for an event (qual + playoff), newest-ish last */
+/**
+ * All match results for an event (qual + playoff), every match-number window.
+ * The public API caps each request to a match-number range; we page until empty.
+ */
 export async function fetchAllMatchesForEvent(
   season: number,
   eventCode: string
 ) {
   const [qual, playoff] = await Promise.all([
-    fetchMatches(season, eventCode, "qual"),
-    fetchMatches(season, eventCode, "playoff"),
+    fetchMatchesAllInLevel(season, eventCode, "qual"),
+    fetchMatchesAllInLevel(season, eventCode, "playoff"),
   ]);
-  const out: MatchResultModelV2[] = [];
-  if (qual?.ok && qual.data.matches) out.push(...qual.data.matches);
-  if (playoff?.ok && playoff.data.matches) out.push(...playoff.data.matches);
-  return out;
+  return [...qual, ...playoff];
 }
 
 export function matchHref(

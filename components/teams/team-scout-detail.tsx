@@ -63,7 +63,7 @@ export function TeamScoutDetail({ team, stats, events, eventCatalog }: Props) {
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-10 md:py-14">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link href="/predictor" className="text-sm text-violet-300/80">
+          <Link href="/predictions" className="text-sm text-violet-300/80">
             ← Predictor
           </Link>
           <a
@@ -166,7 +166,7 @@ export function TeamScoutDetail({ team, stats, events, eventCatalog }: Props) {
           </p>
           <p>
             For Red vs Blue odds from the same Scout slice, open{" "}
-            <Link href="/predictor" className="text-violet-300 hover:underline">
+            <Link href="/predictions" className="text-violet-300 hover:underline">
               Predictor
             </Link>
             .

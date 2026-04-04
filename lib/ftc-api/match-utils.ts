@@ -1,5 +1,21 @@
 import type { MatchResultModelV2, MatchResultTeamV2 } from "./types";
 
+/** Match has alliance scores and team rows — safe to use for strength / counts. */
+export function matchHasFinalScores(
+  m: MatchResultModelV2
+): m is MatchResultModelV2 & {
+  scoreRedFinal: number;
+  scoreBlueFinal: number;
+  teams: MatchResultTeamV2[];
+} {
+  return (
+    m.scoreRedFinal != null &&
+    m.scoreBlueFinal != null &&
+    Array.isArray(m.teams) &&
+    m.teams.length > 0
+  );
+}
+
 function stationSide(station: string | null | undefined): "red" | "blue" | null {
   if (!station) return null;
   const s = station.toUpperCase();

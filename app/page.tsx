@@ -97,7 +97,7 @@ export default function Home() {
             <h2 className="text-xl font-semibold">Ready to compare?</h2>
             <p className="mt-1 text-sm text-white/45">
               Same screen teams use on the bus and in the pit. Use{" "}
-              <Link href="/predictor" className="text-violet-300 hover:underline">
+              <Link href="/predictions" className="text-violet-300 hover:underline">
                 Predictor
               </Link>
               ,{" "}
