@@ -45,12 +45,19 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
       <div className="min-w-0 px-3 py-3 sm:px-5 sm:py-4">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-2 gap-y-1">
           <div className="min-w-0 flex-1">
-            <p className="break-words text-[15px] font-semibold leading-snug text-white/95 sm:text-base">
-              {r.name}
-            </p>
-            <p className="mt-0.5 font-mono text-[10px] text-white/38 sm:text-[11px]">
-              {r.code || "—"} · {formatFtcSeasonRangeLabel(r.seasonYear)}
-            </p>
+            <Link
+              prefetch
+              href={r.detailHref}
+              className="block rounded-lg outline-none ring-violet-500/35 focus-visible:ring-2"
+              title="Open analytics"
+            >
+              <p className="break-words text-[15px] font-semibold leading-snug text-white/95 sm:text-base">
+                {r.name}
+              </p>
+              <p className="mt-0.5 font-mono text-[10px] text-white/38 sm:text-[11px]">
+                {r.code || "—"} · {formatFtcSeasonRangeLabel(r.seasonYear)}
+              </p>
+            </Link>
           </div>
           <span
             className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium sm:px-2.5 sm:py-1 sm:text-[11px] ${statusPillClass(r.status)}`}
@@ -100,7 +107,7 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
             href={r.firstWebUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title="FTC Event Web — all events"
+            title="FIRST Event Web — this event"
             className={`${actionBtnBase} flex-1 border-violet-400/40 bg-violet-500/16 text-violet-200/95 hover:bg-violet-500/24 sm:flex-none`}
           >
             FIRST
@@ -144,7 +151,12 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
             {rows.map((r) => (
               <tr key={r.rowKey}>
                 <td className="px-4 py-3.5 pl-5 align-top">
-                  <div className="rounded-lg">
+                  <Link
+                    prefetch
+                    href={r.detailHref}
+                    title="Open analytics"
+                    className="block max-w-xl rounded-lg outline-none ring-violet-500/35 transition-colors hover:text-violet-100 focus-visible:ring-2"
+                  >
                     <p className="font-semibold leading-snug text-white/92">
                       {r.name}
                     </p>
@@ -159,7 +171,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         {r.divisionsNote}
                       </p>
                     ) : null}
-                  </div>
+                  </Link>
                 </td>
                 <td className="whitespace-nowrap px-3 py-3.5 text-center align-top text-xs tabular-nums text-white/55">
                   {formatFtcSeasonRangeLabel(r.seasonYear)}
@@ -210,7 +222,7 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                         href={r.firstWebUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="FTC Event Web — all events"
+                        title="FIRST Event Web — this event"
                         className="touch-manipulation inline-flex min-h-[40px] cursor-pointer select-none items-center rounded-xl border border-violet-400/40 bg-violet-500/14 px-3.5 py-2 text-xs font-semibold text-violet-200/95 shadow-sm transition hover:brightness-110 active:scale-[0.97]"
                       >
                         FIRST

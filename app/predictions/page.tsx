@@ -17,6 +17,11 @@ import {
   filterPredictionsEventsByQuery,
 } from "@/lib/predictions/active-events";
 import {
+  alliancesQueryComplete,
+  alliancesQueryTouched,
+  type AllianceQuery,
+} from "@/lib/predictions/alliance-params";
+import {
   FirstApiSetupGuide,
   FirstApiSetupPointer,
 } from "@/components/predictions/first-api-setup-guide";
@@ -78,6 +83,9 @@ export default async function PredictionsPage({
   const apiOn = isFtcApiConfigured();
   const sp = await searchParams;
   const eventQuery = typeof sp.q === "string" ? sp.q : "";
+  const overallDetailsOpen =
+    alliancesQueryTouched(sp as AllianceQuery) &&
+    alliancesQueryComplete(sp as AllianceQuery);
 
   const catalogSeasons = getFtcSeasonYearsForPredictionsCatalog();
   const ftcScoutEventsYear =
@@ -101,8 +109,18 @@ export default async function PredictionsPage({
             Match intelligence
           </h1>
           <p className="mt-4 break-words text-base leading-relaxed text-white/50 sm:text-lg">
-            Two modes: <strong className="font-medium text-white/70">Overall</strong>{" "}
-            uses{" "}
+            These tools are{" "}
+            <strong className="font-medium text-white/75">exploratory analysis</strong>{" "}
+            built on public{" "}
+            <a
+              href={FTC_API_DOCS}
+              className="text-violet-300/90 underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FIRST Events
+            </a>{" "}
+            and{" "}
             <a
               href={FTC_SCOUT_API}
               className="text-sky-300/90 underline"
@@ -111,18 +129,11 @@ export default async function PredictionsPage({
             >
               FTC Scout
             </a>{" "}
-            composite stats for any teams.{" "}
-            <strong className="font-medium text-white/70">Event</strong> uses{" "}
-            <a
-              href={FTC_API_DOCS}
-              className="text-violet-300/90 underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FIRST FTC Events API
-            </a>{" "}
-            rankings and match history for one competition — predictions tighten as
-            more matches are played.
+            data — not official scores or guarantees. How you read the numbers,
+            what you try on the field, and the calls you make in the pit are{" "}
+            <strong className="font-medium text-white/75">always yours</strong>.
+            Use Overall for season-wide Scout context and Event when you want a
+            single competition wired through the FIRST API.
             {!apiOn ? (
               <>
                 {" "}
@@ -170,6 +181,7 @@ export default async function PredictionsPage({
         <div className={`space-y-4 ${!apiOn ? "mt-6 sm:mt-8" : "mt-10 sm:mt-12"}`}>
           <details
             id="overall"
+            open={overallDetailsOpen}
             className="group scroll-mt-24 rounded-2xl border border-white/[0.1] bg-white/[0.03] open:border-violet-400/30 open:bg-white/[0.045]"
           >
             <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 touch-manipulation sm:p-6 [&::-webkit-details-marker]:hidden">

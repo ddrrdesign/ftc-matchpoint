@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
+import { EventFocusTeamScroll } from "@/components/events/event-focus-team-scroll";
+import { EventDetailHashScroll } from "@/components/events/event-detail-hash-scroll";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { EventAwardsGrid, EventRankingsTable } from "@/components/events/event-rich-blocks";
@@ -62,6 +65,8 @@ type Props = {
   divisions: EventDivisionSlice[];
   teams: SeasonTeamModelV2[];
   matches: MatchResultModelV2[];
+  /** When set (e.g. from a team page), highlight and scroll to this team. */
+  focusTeam?: number | null;
 };
 
 function divisionLabel(d: EventDivisionSlice): string {
@@ -77,8 +82,23 @@ export function EventDetailApi({
   divisions,
   teams,
   matches,
+  focusTeam: focusTeamProp,
 }: Props) {
+  const focusTeamNum =
+    focusTeamProp != null &&
+    Number.isFinite(focusTeamProp) &&
+    focusTeamProp > 0
+      ? Math.floor(focusTeamProp)
+      : null;
+
   const status = deriveEventStatus(event);
+  const showInsightsToy = status !== "completed";
+
+  const teamInFirst72 =
+    focusTeamNum != null &&
+    teams.slice(0, 72).some((t) => t.teamNumber === focusTeamNum);
+
+  let rankingsScrollTargetAssigned = teamInFirst72;
   const location = formatEventLocation(event);
   const venueLine = formatEventVenueLine(event);
   const typeLine = formatEventTypeLine(event);
@@ -100,40 +120,66 @@ export function EventDetailApi({
     divisions[0]?.rankings ??
     [];
 
-  const statsMap = statsMapFromRankings(rankingsForPreview);
-  const byRank = [...rankingsForPreview]
-    .filter((r) => r.teamNumber != null)
-    .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
-  const n1 = byRank[0]?.teamNumber;
-  const n2 = byRank[1]?.teamNumber;
-  const n3 = byRank[2]?.teamNumber;
-  const n4 = byRank[3]?.teamNumber;
+  let n1: number | undefined;
+  let n2: number | undefined;
+  let n3: number | undefined;
+  let n4: number | undefined;
   let predRed = 0.5;
   let predBlue = 0.5;
-  if (
-    n1 != null &&
-    n2 != null &&
-    n3 != null &&
-    n4 != null &&
-    statsMap.has(n1) &&
-    statsMap.has(n2) &&
-    statsMap.has(n3) &&
-    statsMap.has(n4)
-  ) {
-    const w = winProbabilities(
-      allianceStrength(statsMap.get(n1)!, statsMap.get(n2)!),
-      allianceStrength(statsMap.get(n3)!, statsMap.get(n4)!)
-    );
-    predRed = w.red;
-    predBlue = w.blue;
+
+  if (showInsightsToy) {
+    const statsMap = statsMapFromRankings(rankingsForPreview);
+    const byRank = [...rankingsForPreview]
+      .filter((r) => r.teamNumber != null)
+      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
+    n1 = byRank[0]?.teamNumber;
+    n2 = byRank[1]?.teamNumber;
+    n3 = byRank[2]?.teamNumber;
+    n4 = byRank[3]?.teamNumber;
+    if (
+      n1 != null &&
+      n2 != null &&
+      n3 != null &&
+      n4 != null &&
+      statsMap.has(n1) &&
+      statsMap.has(n2) &&
+      statsMap.has(n3) &&
+      statsMap.has(n4)
+    ) {
+      const w = winProbabilities(
+        allianceStrength(statsMap.get(n1)!, statsMap.get(n2)!),
+        allianceStrength(statsMap.get(n3)!, statsMap.get(n4)!)
+      );
+      predRed = w.red;
+      predBlue = w.blue;
+    }
   }
 
   const totalRankRows = divisions.reduce((a, d) => a + d.rankings.length, 0);
   const totalAwards = divisions.reduce((a, d) => a + d.awards.length, 0);
   const multiDiv = divisions.length > 1;
 
+  const sectionNav = (
+    [
+      ["#matches", "Matches"],
+      ["#rankings", "Rankings"],
+      ["#teams", "Teams"],
+      ...(showInsightsToy ? ([["#insights", "Insights"]] as const) : []),
+      ["#awards", "Awards"],
+      ["#links", "Streams"],
+    ] as const
+  );
+
   return (
     <PageShell>
+      <Suspense fallback={null}>
+        <EventDetailHashScroll />
+      </Suspense>
+      {focusTeamNum != null ? (
+        <Suspense fallback={null}>
+          <EventFocusTeamScroll teamNumber={focusTeamNum} />
+        </Suspense>
+      ) : null}
       <SiteHeader />
       <main className="mx-auto min-w-0 w-full max-w-7xl overflow-x-clip px-3 py-8 sm:px-6 md:py-14">
         <div className="relative isolate mb-10 overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-950/50 via-[#0a0614] to-[#05030a] p-5 shadow-[0_0_80px_-30px_rgba(139,92,246,0.45)] sm:p-8">
@@ -271,23 +317,17 @@ export function EventDetailApi({
           className="mb-10 flex w-full min-w-0 max-w-full flex-wrap gap-x-4 gap-y-2 overflow-x-auto overscroll-x-contain border-b border-white/[0.08] pb-3 [-webkit-overflow-scrolling:touch] text-sm text-white/55 sm:overflow-visible"
           aria-label="Event sections"
         >
-          {(
-            [
-              ["#matches", "Matches"],
-              ["#rankings", "Rankings"],
-              ["#teams", "Teams"],
-              ["#insights", "Insights"],
-              ["#awards", "Awards"],
-              ["#links", "Streams"],
-            ] as const
-          ).map(([href, label]) => (
+          {sectionNav.map(([href, label]) => (
             <a key={href} href={href} className="hover:text-violet-200">
               {label}
             </a>
           ))}
         </nav>
 
-        <div className="mb-12 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div
+          id="event-overview"
+          className="mb-12 scroll-mt-28 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        >
           {[
             { k: "Teams", v: teams.length },
             { k: "Matches loaded", v: matches.length },
@@ -446,22 +486,34 @@ export function EventDetailApi({
             returns multiple event codes for this championship).
           </p>
           <div className="mt-6 space-y-10">
-            {divisions.map((d) => (
-              <div key={d.code}>
-                <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-lg font-medium text-white/90">
-                    {divisionLabel(d)}
-                  </h3>
-                  <span className="font-mono text-xs text-white/40">
-                    {d.code}
-                  </span>
+            {divisions.map((d) => {
+              const hasFocusTeamInDiv =
+                focusTeamNum != null &&
+                d.rankings.some((r) => r.teamNumber === focusTeamNum);
+              const giveRankingsDomId =
+                !rankingsScrollTargetAssigned && hasFocusTeamInDiv;
+              if (giveRankingsDomId) rankingsScrollTargetAssigned = true;
+              return (
+                <div key={d.code}>
+                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="text-lg font-medium text-white/90">
+                      {divisionLabel(d)}
+                    </h3>
+                    <span className="font-mono text-xs text-white/40">
+                      {d.code}
+                    </span>
+                  </div>
+                  <EventRankingsTable
+                    rankings={d.rankings}
+                    divisionTitle={divisionLabel(d)}
+                    highlightTeamNumber={focusTeamNum}
+                    domIdForFocusRow={
+                      giveRankingsDomId ? focusTeamNum : null
+                    }
+                  />
                 </div>
-                <EventRankingsTable
-                  rankings={d.rankings}
-                  divisionTitle={divisionLabel(d)}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -472,11 +524,26 @@ export function EventDetailApi({
             for Scout stats when available.
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {teams.slice(0, 72).map((t) => (
-              <Link key={t.teamNumber} href={`/teams/${t.teamNumber}`}>
+            {teams.slice(0, 72).map((t) => {
+              const isFocus =
+                focusTeamNum != null && t.teamNumber === focusTeamNum;
+              return (
+              <Link
+                key={t.teamNumber}
+                href={`/teams/${t.teamNumber}`}
+                id={
+                  isFocus && teamInFirst72
+                    ? `team-focus-${t.teamNumber}`
+                    : undefined
+                }
+              >
                 <GlassCard
                   glow="violet"
-                  className="h-full border-white/[0.07] p-4 transition hover:border-violet-400/30 hover:bg-white/[0.06]"
+                  className={`h-full border-white/[0.07] p-4 transition hover:border-violet-400/30 hover:bg-white/[0.06] ${
+                    isFocus
+                      ? "border-violet-400/45 bg-violet-500/[0.12] ring-2 ring-violet-400/30"
+                      : ""
+                  }`}
                 >
                   <p className="font-mono text-lg font-semibold text-violet-100">
                     {t.teamNumber}
@@ -498,7 +565,8 @@ export function EventDetailApi({
                   </p>
                 </GlassCard>
               </Link>
-            ))}
+            );
+            })}
           </div>
           {teams.length > 72 && (
             <p className="mt-3 text-sm text-white/45">
@@ -507,44 +575,46 @@ export function EventDetailApi({
           )}
         </section>
 
-        <section id="insights" className="mb-14 scroll-mt-28">
-          <h2 className="text-xl font-semibold">Insights</h2>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
-            Toy preview: ranks #1–#2 vs #3–#4 on the first division that has
-            rankings, using qual average as strength — same logistic as the home
-            demo. Not a replacement for real scouting.
-          </p>
-          <GlassCard glow="violet" className="mt-6 p-6 md:p-8">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.08] p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-red-300/80">
-                  Red (ranks 1–2)
-                </p>
-                <p className="mt-2 font-mono text-lg">
-                  {n1 != null && n2 != null
-                    ? formatAlliance([n1, n2])
-                    : "-"}
-                </p>
-                <p className="mt-4 text-4xl font-semibold tabular-nums text-red-200">
-                  {Math.round(predRed * 100)}%
-                </p>
+        {showInsightsToy ? (
+          <section id="insights" className="mb-14 scroll-mt-28">
+            <h2 className="text-xl font-semibold">Insights</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
+              Toy preview: ranks #1–#2 vs #3–#4 on the first division that has
+              rankings, using qual average as strength — same logistic as the home
+              demo. Not a replacement for real scouting.
+            </p>
+            <GlassCard glow="violet" className="mt-6 p-6 md:p-8">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.08] p-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-red-300/80">
+                    Red (ranks 1–2)
+                  </p>
+                  <p className="mt-2 font-mono text-lg">
+                    {n1 != null && n2 != null
+                      ? formatAlliance([n1, n2])
+                      : "-"}
+                  </p>
+                  <p className="mt-4 text-4xl font-semibold tabular-nums text-red-200">
+                    {Math.round(predRed * 100)}%
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] p-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-blue-300/80">
+                    Blue (ranks 3–4)
+                  </p>
+                  <p className="mt-2 font-mono text-lg">
+                    {n3 != null && n4 != null
+                      ? formatAlliance([n3, n4])
+                      : "-"}
+                  </p>
+                  <p className="mt-4 text-4xl font-semibold tabular-nums text-blue-200">
+                    {Math.round(predBlue * 100)}%
+                  </p>
+                </div>
               </div>
-              <div className="rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-blue-300/80">
-                  Blue (ranks 3–4)
-                </p>
-                <p className="mt-2 font-mono text-lg">
-                  {n3 != null && n4 != null
-                    ? formatAlliance([n3, n4])
-                    : "-"}
-                </p>
-                <p className="mt-4 text-4xl font-semibold tabular-nums text-blue-200">
-                  {Math.round(predBlue * 100)}%
-                </p>
-              </div>
-            </div>
-          </GlassCard>
-        </section>
+            </GlassCard>
+          </section>
+        ) : null}
 
         <section id="awards" className="mb-14 scroll-mt-28">
           <h2 className="text-xl font-semibold">Awards</h2>

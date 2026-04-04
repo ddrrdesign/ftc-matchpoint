@@ -32,7 +32,9 @@ export default async function TeamsSearchPage({ searchParams }: Props) {
             Find a team
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-white/50">
-            Search by team number or name - data from{" "}
+            Search by team number or name — opens a profile with multi-season
+            events and links into event analytics (your team stays highlighted).
+            Data from{" "}
             <a
               href="https://ftcscout.org"
               className="text-violet-300/90 hover:underline"

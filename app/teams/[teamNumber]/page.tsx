@@ -13,28 +13,101 @@ import {
   firstSeasonHubUrl,
 } from "@/lib/ftc-api/event-presentation";
 import { fetchTeamByNumber } from "@/lib/ftc-api/service";
-import { getFtcScoutSeason } from "@/lib/ftc-scout/env";
+import type {
+  ScoutEventListItem,
+  TeamEventParticipation,
+} from "@/lib/ftc-scout/types";
 import {
   fetchQuickStats,
-  fetchScoutEventsSearch,
   fetchScoutTeam,
+  fetchScoutEventsForSeasons,
   fetchTeamEvents,
+  getEffectiveScoutSeason,
 } from "@/lib/ftc-scout/queries";
 
-type Props = { params: Promise<{ teamNumber: string }> };
+const SCOUT_TEAM_CACHE = { revalidate: 600 } as const;
+const SEASON_LOAD_SPAN = 8;
 
-export default async function TeamDetailPage({ params }: Props) {
+function parseScoutSeasonQuery(
+  raw: string | string[] | undefined
+): number | null {
+  const s = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : "";
+  const n = Number.parseInt(String(s).trim(), 10);
+  if (Number.isNaN(n) || n < 2000 || n > 2100) return null;
+  return n;
+}
+
+type Props = {
+  params: Promise<{ teamNumber: string }>;
+  searchParams: Promise<{ season?: string | string[] }>;
+};
+
+export default async function TeamDetailPage({ params, searchParams }: Props) {
   await connection();
   const { teamNumber } = await params;
+  const sp = await searchParams;
   const n = Number.parseInt(teamNumber, 10);
   if (Number.isNaN(n)) notFound();
 
-  const season = getFtcScoutSeason();
-  const [scoutTeam, scoutQs, scoutEv, catalogRes] = await Promise.all([
-    fetchScoutTeam(n),
-    fetchQuickStats(n, season),
-    fetchTeamEvents(n, season),
-    fetchScoutEventsSearch(season),
+  const anchor = await getEffectiveScoutSeason();
+  const seasonParam = parseScoutSeasonQuery(sp.season);
+  const selectedSeason = seasonParam ?? anchor;
+
+  const seasonsToLoad = Array.from(
+    { length: SEASON_LOAD_SPAN },
+    (_, i) => anchor - i
+  ).filter((y) => y >= 2018 && y <= 2100);
+
+  const eventPulls = await Promise.all(
+    seasonsToLoad.map((y) => fetchTeamEvents(n, y, SCOUT_TEAM_CACHE))
+  );
+
+  const merged: TeamEventParticipation[] = [];
+  const seenEv = new Set<string>();
+  for (const r of eventPulls) {
+    if (!r.ok) continue;
+    for (const p of r.data) {
+      const sy = p.season ?? 0;
+      const code = (p.eventCode ?? "").trim().toLowerCase();
+      if (!code) continue;
+      const k = `${sy}:${code}`;
+      if (seenEv.has(k)) continue;
+      seenEv.add(k);
+      merged.push(p);
+    }
+  }
+
+  const seasonPickerYears = [
+    ...new Set([
+      selectedSeason,
+      anchor,
+      ...merged
+        .map((p) => p.season)
+        .filter((y): y is number => typeof y === "number"),
+    ]),
+  ]
+    .filter((y) => y >= 2018 && y <= 2100)
+    .sort((a, b) => b - a);
+
+  const catalogSeasons = [
+    ...new Set([selectedSeason, ...seasonsToLoad]),
+  ].sort((a, b) => b - a);
+  const catalogBlobs = await fetchScoutEventsForSeasons(catalogSeasons);
+  const catalogMerged: ScoutEventListItem[] = [];
+  const seenCat = new Set<string>();
+  for (const cr of catalogBlobs) {
+    if (!cr.ok) continue;
+    for (const e of cr.data ?? []) {
+      const k = `${e.season}:${(e.code ?? "").trim().toLowerCase()}`;
+      if (seenCat.has(k)) continue;
+      seenCat.add(k);
+      catalogMerged.push(e);
+    }
+  }
+
+  const [scoutTeam, scoutQs] = await Promise.all([
+    fetchScoutTeam(n, SCOUT_TEAM_CACHE),
+    fetchQuickStats(n, selectedSeason, SCOUT_TEAM_CACHE),
   ]);
 
   if (scoutTeam.ok && scoutQs.ok) {
@@ -42,8 +115,11 @@ export default async function TeamDetailPage({ params }: Props) {
       <TeamScoutDetail
         team={scoutTeam.data}
         stats={scoutQs.data}
-        events={scoutEv.ok ? scoutEv.data : []}
-        eventCatalog={catalogRes.ok ? catalogRes.data : []}
+        events={merged}
+        eventCatalog={catalogMerged}
+        selectedSeason={selectedSeason}
+        anchorSeason={anchor}
+        seasonPickerYears={seasonPickerYears}
       />
     );
   }

@@ -35,6 +35,14 @@ export default function Home() {
                 <p className="relative mt-3 max-w-xl text-[15px] leading-relaxed text-violet-100/88 sm:mt-4 sm:text-base md:text-lg [text-shadow:0_0_28px_rgba(167,139,250,0.35),0_0_56px_rgba(139,92,246,0.18)]">
                   Data reveals the edge, but the outcome is always in your hands.
                 </p>
+                <p className="relative mt-4 max-w-xl text-[14px] leading-relaxed text-white/55 sm:text-[15px]">
+                  We built MatchPoint so teams and mentors can practice turning
+                  messy competition data into clear questions — who gains from
+                  which matchups, where an alliance is thin, what still needs a
+                  human look. The site is here to sharpen your{" "}
+                  <span className="text-white/75">scouting judgment</span>, not to
+                  replace it.
+                </p>
               </div>
 
               <p className="max-w-lg text-[15px] leading-relaxed text-white/45 sm:text-base">

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
+import { EventDetailHashScroll } from "@/components/events/event-detail-hash-scroll";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import {
@@ -42,9 +44,13 @@ export function EventDetailMock({ event }: { event: Event }) {
   const rS = allianceStrength(t27772, t25002);
   const bS = allianceStrength(t25004, t25003);
   const probs = winProbabilities(rS, bS);
+  const showToyBlocks = event.status !== "completed";
 
   return (
     <PageShell>
+      <Suspense fallback={null}>
+        <EventDetailHashScroll />
+      </Suspense>
       <SiteHeader />
       <main className="mx-auto min-w-0 max-w-7xl overflow-x-clip px-3 py-10 sm:px-6 md:py-14">
         <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
@@ -113,7 +119,10 @@ export function EventDetailMock({ event }: { event: Event }) {
           </div>
         </div>
 
-        <div className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div
+          id="event-overview"
+          className="mb-12 scroll-mt-28 grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
+        >
           {[
             { k: "Teams", v: event.teamCount },
             { k: "Matches", v: event.matchCount },
@@ -251,59 +260,63 @@ export function EventDetailMock({ event }: { event: Event }) {
           </GlassCard>
         </section>
 
-        <section className="mb-14">
-          <h2 className="text-xl font-semibold">Upcoming — prediction</h2>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
-            Demo model: each robot gets a strength score from the sample stats
-            card; alliance strength is the sum of partners, then a logistic maps
-            the gap to win odds. Tune weights on the real site — this is for
-            layout only.
-          </p>
-          <GlassCard glow="violet" className="mt-6 p-6 md:p-8">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.08] p-5 shadow-[0_0_40px_-12px_rgba(239,68,68,0.25)]">
-                <p className="text-xs uppercase tracking-[0.2em] text-red-300/80">
-                  Red alliance
-                </p>
-                <p className="mt-2 font-mono text-lg">
-                  {formatAlliance(upcomingPreview.red)}
-                </p>
-                <p className="mt-4 text-4xl font-semibold tabular-nums text-red-200">
-                  {Math.round(probs.red * 100)}%
-                </p>
-                <p className="text-sm text-white/45">Win probability</p>
+        {showToyBlocks ? (
+          <section className="mb-14">
+            <h2 className="text-xl font-semibold">Upcoming — prediction</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/45">
+              Demo model: each robot gets a strength score from the sample stats
+              card; alliance strength is the sum of partners, then a logistic maps
+              the gap to win odds. Tune weights on the real site — this is for
+              layout only.
+            </p>
+            <GlassCard glow="violet" className="mt-6 p-6 md:p-8">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.08] p-5 shadow-[0_0_40px_-12px_rgba(239,68,68,0.25)]">
+                  <p className="text-xs uppercase tracking-[0.2em] text-red-300/80">
+                    Red alliance
+                  </p>
+                  <p className="mt-2 font-mono text-lg">
+                    {formatAlliance(upcomingPreview.red)}
+                  </p>
+                  <p className="mt-4 text-4xl font-semibold tabular-nums text-red-200">
+                    {Math.round(probs.red * 100)}%
+                  </p>
+                  <p className="text-sm text-white/45">Win probability</p>
+                </div>
+                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] p-5 shadow-[0_0_40px_-12px_rgba(59,130,246,0.22)]">
+                  <p className="text-xs uppercase tracking-[0.2em] text-blue-300/80">
+                    Blue alliance
+                  </p>
+                  <p className="mt-2 font-mono text-lg">
+                    {formatAlliance(upcomingPreview.blue)}
+                  </p>
+                  <p className="mt-4 text-4xl font-semibold tabular-nums text-blue-200">
+                    {Math.round(probs.blue * 100)}%
+                  </p>
+                  <p className="text-sm text-white/45">Win probability</p>
+                </div>
               </div>
-              <div className="rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] p-5 shadow-[0_0_40px_-12px_rgba(59,130,246,0.22)]">
-                <p className="text-xs uppercase tracking-[0.2em] text-blue-300/80">
-                  Blue alliance
-                </p>
-                <p className="mt-2 font-mono text-lg">
-                  {formatAlliance(upcomingPreview.blue)}
-                </p>
-                <p className="mt-4 text-4xl font-semibold tabular-nums text-blue-200">
-                  {Math.round(probs.blue * 100)}%
-                </p>
-                <p className="text-sm text-white/45">Win probability</p>
-              </div>
-            </div>
-          </GlassCard>
-        </section>
+            </GlassCard>
+          </section>
+        ) : null}
 
-        <section>
-          <h2 className="text-xl font-semibold">Event insights</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {[
-              "Strongest autonomous split in sample data: 27772 + TalTech-style profiles",
-              "Most consistent match-to-match: 25004 Almaty Constructors",
-              "Highest combined alliance total in table: Red in QF 38 (27772 & 25001)",
-              "Watch 25003: lower average but pairs well with a high-peak partner",
-            ].map((line) => (
-              <GlassCard key={line} className="p-4 text-sm text-white/70">
-                {line}
-              </GlassCard>
-            ))}
-          </div>
-        </section>
+        {showToyBlocks ? (
+          <section>
+            <h2 className="text-xl font-semibold">Event insights</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {[
+                "Strongest autonomous split in sample data: 27772 + TalTech-style profiles",
+                "Most consistent match-to-match: 25004 Almaty Constructors",
+                "Highest combined alliance total in table: Red in QF 38 (27772 & 25001)",
+                "Watch 25003: lower average but pairs well with a high-peak partner",
+              ].map((line) => (
+                <GlassCard key={line} className="p-4 text-sm text-white/70">
+                  {line}
+                </GlassCard>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </main>
     </PageShell>
   );

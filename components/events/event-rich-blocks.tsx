@@ -16,9 +16,14 @@ function hasSortCols(rows: TeamRankingModel[]) {
 export function EventRankingsTable({
   rankings,
   divisionTitle,
+  highlightTeamNumber,
+  /** When set, the matching row gets `id="team-focus-{n}"` for scroll (one table only). */
+  domIdForFocusRow,
 }: {
   rankings: TeamRankingModel[];
   divisionTitle: string;
+  highlightTeamNumber?: number | null;
+  domIdForFocusRow?: number | null;
 }) {
   const rows = [...rankings]
     .filter((r) => r.teamNumber != null)
@@ -61,10 +66,23 @@ export function EventRankingsTable({
             const num = r.teamNumber!;
             const display = r.displayTeamNumber ?? String(num);
             const wl = [r.wins ?? 0, r.losses ?? 0, r.ties ?? 0].join("-");
+            const focused =
+              highlightTeamNumber != null && num === highlightTeamNumber;
+            const focusDomId =
+              focused &&
+              domIdForFocusRow != null &&
+              num === domIdForFocusRow
+                ? `team-focus-${num}`
+                : undefined;
             return (
               <tr
                 key={`${num}-${r.rank}-${i}`}
-                className="border-b border-white/[0.04] transition hover:bg-white/[0.03]"
+                id={focusDomId}
+                className={`border-b border-white/[0.04] transition hover:bg-white/[0.03] ${
+                  focused
+                    ? "bg-violet-500/[0.12] ring-1 ring-inset ring-violet-400/35"
+                    : ""
+                }`}
               >
                 <td className="px-4 py-2.5 pr-2 font-mono text-white/50">
                   {r.rank ?? "—"}

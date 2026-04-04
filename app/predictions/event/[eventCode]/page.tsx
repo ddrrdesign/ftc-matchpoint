@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AllianceScoutDeepDive } from "@/components/predictions/alliance-scout-deep-dive";
 import { connection } from "next/server";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
@@ -30,6 +31,7 @@ import {
   alliancesQueryTouched,
   defaultAllianceFieldValues,
   parseAlliancesFromQuery,
+  swapAlliancesQueryString,
   type AllianceQuery,
 } from "@/lib/predictions/alliance-params";
 
@@ -175,6 +177,22 @@ export default async function EventPredictionPage({
   const formAction = `/predictions/event/${encodeURIComponent(eventCode)}`;
   const firstUrl = firstEventWebUrl(season, eventCode);
 
+  const seasonQs = new URLSearchParams();
+  seasonQs.set("season", String(season));
+  const resetHref = `${formAction}?${seasonQs.toString()}`;
+  const swapHref =
+    red && blue
+      ? (() => {
+          const p = new URLSearchParams(seasonQs);
+          for (const [k, v] of new URLSearchParams(
+            swapAlliancesQueryString(red, blue)
+          )) {
+            p.set(k, v);
+          }
+          return `${formAction}?${p.toString()}`;
+        })()
+      : resetHref;
+
   return (
     <PageShell>
       <SiteHeader />
@@ -319,12 +337,26 @@ export default async function EventPredictionPage({
               </div>
             </div>
           </div>
-          <button
-            type="submit"
-            className="min-h-[48px] w-full touch-manipulation select-none rounded-xl border border-violet-400/35 bg-violet-500/15 px-8 text-sm font-medium text-violet-100 hover:bg-violet-500/25 sm:w-auto"
-          >
-            Run prediction
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button
+              type="submit"
+              className="min-h-[48px] w-full touch-manipulation select-none rounded-xl border border-violet-400/35 bg-violet-500/15 px-8 text-sm font-medium text-violet-100 hover:bg-violet-500/25 sm:w-auto sm:min-w-[8rem]"
+            >
+              Run prediction
+            </button>
+            <Link
+              href={swapHref}
+              className="flex min-h-[48px] touch-manipulation items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 hover:bg-white/[0.06] sm:min-h-12"
+            >
+              Swap sides
+            </Link>
+            <Link
+              href={resetHref}
+              className="flex min-h-[48px] touch-manipulation items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 hover:bg-white/[0.06] sm:min-h-12"
+            >
+              Reset
+            </Link>
+          </div>
         </form>
 
         {invalidMsg ? (
@@ -333,45 +365,66 @@ export default async function EventPredictionPage({
           </p>
         ) : null}
 
-        {prediction ? (
-          <GlassCard glow="violet" className="mt-8 max-w-2xl min-w-0 p-4 sm:mt-10 sm:p-6 md:p-8">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-              Model output
-            </p>
-            <p className="mt-2 text-xl font-medium text-white/90">
-              {prediction.favored === "red" ? "Red" : "Blue"} favored
-            </p>
-            <p className="mt-1 text-sm text-white/45">
-              Confidence:{" "}
-              <span className="font-medium text-white/75">{prediction.confidence}</span>
-              {" · "}
-              Data:{" "}
-              <span className="text-white/65">{prediction.richness}</span>
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-white/55">
-              {richnessLabel(prediction.richness)}
-            </p>
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-center">
-                <p className="text-[10px] uppercase text-red-200/80">Red</p>
-                <p className="text-3xl font-semibold tabular-nums text-red-100">
-                  {Math.round(prediction.redWin * 100)}%
-                </p>
+        {prediction && red && blue ? (
+          <section
+            id="event-prediction-results"
+            className="scroll-mt-24 space-y-10 sm:space-y-12"
+          >
+            <GlassCard glow="violet" className="mt-8 max-w-2xl min-w-0 p-4 sm:mt-10 sm:p-6 md:p-8">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                FIRST API model
+              </p>
+              <p className="mt-2 text-xl font-medium text-white/90">
+                {prediction.favored === "red" ? "Red" : "Blue"} favored
+              </p>
+              <p className="mt-1 text-sm text-white/45">
+                Confidence:{" "}
+                <span className="font-medium text-white/75">{prediction.confidence}</span>
+                {" · "}
+                Data:{" "}
+                <span className="text-white/65">{prediction.richness}</span>
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-white/55">
+                {richnessLabel(prediction.richness)}
+              </p>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-center">
+                  <p className="text-[10px] uppercase text-red-200/80">Red</p>
+                  <p className="text-3xl font-semibold tabular-nums text-red-100">
+                    {Math.round(prediction.redWin * 100)}%
+                  </p>
+                </div>
+                <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-center">
+                  <p className="text-[10px] uppercase text-blue-200/80">Blue</p>
+                  <p className="text-3xl font-semibold tabular-nums text-blue-100">
+                    {Math.round(prediction.blueWin * 100)}%
+                  </p>
+                </div>
               </div>
-              <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-center">
-                <p className="text-[10px] uppercase text-blue-200/80">Blue</p>
-                <p className="text-3xl font-semibold tabular-nums text-blue-100">
-                  {Math.round(prediction.blueWin * 100)}%
+              <p className="mt-6 break-words text-xs text-white/35">
+                Raw logistic (before event-volume blend): Red{" "}
+                {Math.round(prediction.rawRedWin * 100)}% · {prediction.playedMatches}{" "}
+                scored matches · ~{prediction.avgTeamMatches.toFixed(1)} matches per team
+                on average (alliance appearances).
+              </p>
+            </GlassCard>
+
+            <AllianceScoutDeepDive
+              red={[red[0]!, red[1]!]}
+              blue={[blue[0]!, blue[1]!]}
+              scoutSeason={season}
+              predictorEventCode={eventCode}
+              sectionLabel={
+                <p>
+                  <span className="font-medium text-white/70">
+                    Scout cross-check (same breakdown as Overall analysis)
+                  </span>
+                  : Total NP sums, phase edges, scouting read, and per-team cards from
+                  FTC Scout — independent of the FIRST API matchup model above.
                 </p>
-              </div>
-            </div>
-            <p className="mt-6 break-words text-xs text-white/35">
-              Raw logistic (before event-volume blend): Red{" "}
-              {Math.round(prediction.rawRedWin * 100)}% · {prediction.playedMatches}{" "}
-              scored matches · ~{prediction.avgTeamMatches.toFixed(1)} matches per team
-              on average (alliance appearances).
-            </p>
-          </GlassCard>
+              }
+            />
+          </section>
         ) : null}
 
         <section className="mt-10 max-w-2xl min-w-0 sm:mt-12">

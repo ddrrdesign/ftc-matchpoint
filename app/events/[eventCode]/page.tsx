@@ -19,12 +19,26 @@ import {
 
 type Props = {
   params: Promise<{ eventCode: string }>;
-  searchParams: Promise<{ season?: string | string[] }>;
+  searchParams: Promise<{
+    season?: string | string[];
+    focusTeam?: string | string[];
+  }>;
 };
+
+function parseFocusTeamParam(
+  raw: string | string[] | undefined
+): number | null {
+  const s = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : "";
+  const n = Number.parseInt(String(s).trim(), 10);
+  if (Number.isNaN(n) || n <= 0) return null;
+  return n;
+}
 
 export default async function EventDetailPage({ params, searchParams }: Props) {
   await connection();
-  const qSeason = parseFtcSeasonQueryParam((await searchParams).season);
+  const sp = await searchParams;
+  const qSeason = parseFtcSeasonQueryParam(sp.season);
+  const focusTeam = parseFocusTeamParam(sp.focusTeam);
   const { eventCode: raw } = await params;
   const eventCode = decodeURIComponent(raw);
   const preferredSeason = qSeason ?? getFtcSeasonYear();
@@ -75,6 +89,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
             divisions={perCode}
             teams={teams}
             matches={matches}
+            focusTeam={focusTeam}
           />
         );
       }

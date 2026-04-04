@@ -30,6 +30,7 @@ import {
   isWorldsMockEvent,
 } from "@/lib/ftc-api/event-buckets";
 import {
+  firstEventWebUrl,
   formatEventDateRange,
   formatEventTypeLine,
   formatEventVenueLine,
@@ -54,6 +55,8 @@ const OFFICIAL_EVENTS_URL = "https://ftc-events.firstinspires.org/#allevents";
 const SCOUT_HUB = "https://ftcscout.org";
 
 const MAX_TEAM_PAIR_LOOKUPS = 100;
+/** Open event detail on the stats / API summary block (not the hero). */
+const EVENT_ANALYTICS_HASH = "#event-overview";
 
 function buildEventsListHref(parts: {
   q?: string;
@@ -187,6 +190,29 @@ type RowSource = {
   m: ReturnType<typeof dedupeEventsByCode>[number];
 };
 
+function uniquePairsForDisplayedBuckets(
+  past: RowSource[],
+  premier: RowSource[],
+  worlds: RowSource[]
+): { season: number; code: string }[] {
+  const seen = new Set<string>();
+  const out: { season: number; code: string }[] = [];
+  const add = (rows: RowSource[]) => {
+    for (const { seasonYear, m } of rows) {
+      const code = m.event.code?.trim() ?? "";
+      if (!code) continue;
+      const k = teamCountCacheKey(seasonYear, code);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({ season: seasonYear, code });
+    }
+  };
+  add(past);
+  add(premier);
+  add(worlds);
+  return out;
+}
+
 function mapApiRowSourcesToBrowseRows(
   sources: RowSource[],
   teamCounts: Map<string, number | null>
@@ -202,7 +228,7 @@ function mapApiRowSourcesToBrowseRows(
     const venue = formatEventVenueLine(e);
     const qs = new URLSearchParams();
     qs.set("season", String(seasonYear));
-    const detailHref = `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`;
+    const detailHref = `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}${EVENT_ANALYTICS_HASH}`;
     return {
       rowKey: `${seasonYear}-${code || e.eventId || i}`,
       seasonYear,
@@ -218,7 +244,7 @@ function mapApiRowSourcesToBrowseRows(
       primaryHref: detailHref,
       primaryLabel: "Analytics",
       primaryExternal: false,
-      firstWebUrl: OFFICIAL_EVENTS_URL,
+      firstWebUrl: code ? firstEventWebUrl(seasonYear, code) : OFFICIAL_EVENTS_URL,
       divisionsNote:
         m.sourceRowCount > 1
           ? `${m.sourceRowCount} divisions (merged)`
@@ -242,7 +268,7 @@ function mapScoutEventsToBrowseRows(items: ScoutEventListItem[]): EventBrowseLis
       }) ?? "TBA";
     const qs = new URLSearchParams();
     qs.set("season", String(seasonY));
-    const detailHref = `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`;
+    const detailHref = `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}${EVENT_ANALYTICS_HASH}`;
     return {
       rowKey: `${seasonY}-${code}-${i}`,
       seasonYear: seasonY,
@@ -258,7 +284,7 @@ function mapScoutEventsToBrowseRows(items: ScoutEventListItem[]): EventBrowseLis
       primaryHref: scoutEventWebUrl(seasonY, code),
       primaryLabel: "Scout",
       primaryExternal: true,
-      firstWebUrl: OFFICIAL_EVENTS_URL,
+      firstWebUrl: code ? firstEventWebUrl(seasonY, code) : OFFICIAL_EVENTS_URL,
       divisionsNote: null,
     };
   });
@@ -271,7 +297,7 @@ function mapMockEventsToBrowseRows(
   return events.map((e) => {
     const qs = new URLSearchParams();
     qs.set("season", String(defaultSeason));
-    const detailHref = `/events/${encodeURIComponent(e.code)}?${qs.toString()}`;
+    const detailHref = `/events/${encodeURIComponent(e.code)}?${qs.toString()}${EVENT_ANALYTICS_HASH}`;
     return {
       rowKey: e.id,
       seasonYear: defaultSeason,
@@ -287,7 +313,9 @@ function mapMockEventsToBrowseRows(
       primaryHref: detailHref,
       primaryLabel: "Analytics",
       primaryExternal: false,
-      firstWebUrl: OFFICIAL_EVENTS_URL,
+      firstWebUrl:
+        e.firstInspiresUrl ??
+        (e.code ? firstEventWebUrl(defaultSeason, e.code) : OFFICIAL_EVENTS_URL),
       divisionsNote: null,
     };
   });
@@ -367,20 +395,6 @@ export default async function EventsPage({ searchParams }: Props) {
     });
   }
 
-  let teamCounts = new Map<string, number | null>();
-  if (showApi && rowSources.length > 0) {
-    const pairs = rowSources
-      .map(({ seasonYear, m }) => ({
-        season: seasonYear,
-        code: m.event.code?.trim() ?? "",
-      }))
-      .filter((p) => p.code.length > 0);
-
-    if (pairs.length > 0 && pairs.length <= MAX_TEAM_PAIR_LOOKUPS) {
-      teamCounts = await fetchTeamCountsForSeasonCodePairs(pairs, 10);
-    }
-  }
-
   const pastSources = showApi
     ? rowSources.filter(
         ({ m }) => deriveEventStatus(m.event) === "completed"
@@ -398,6 +412,18 @@ export default async function EventsPage({ searchParams }: Props) {
   const worldsSources = showApi
     ? rowSources.filter(({ m }) => isWorldsLevelEvent(m.event))
     : [];
+
+  let teamCounts = new Map<string, number | null>();
+  if (showApi) {
+    const pairs = uniquePairsForDisplayedBuckets(
+      pastSources,
+      premierSources,
+      worldsSources
+    );
+    if (pairs.length > 0 && pairs.length <= MAX_TEAM_PAIR_LOOKUPS) {
+      teamCounts = await fetchTeamCountsForSeasonCodePairs(pairs, 14);
+    }
+  }
 
   let scoutMerged: ScoutEventListItem[] = [];
   let scoutFetchHadError = false;
@@ -504,13 +530,6 @@ export default async function EventsPage({ searchParams }: Props) {
 
   const pastSeasonsForFilter = uniqueSeasonsDescending(pastRows);
   const worldsSeasonsForFilter = uniqueSeasonsDescending(worldsRows);
-  const yearsLoaded = showApi
-    ? [...new Set(succeededChunks.map((c) => c.season))].sort((a, b) => b - a)
-    : [];
-
-  const scoutSeasonsLoaded = scoutHasData
-    ? [...new Set(scoutMerged.map((e) => e.season))].sort((a, b) => b - a)
-    : [];
 
   return (
     <PageShell>
@@ -526,37 +545,6 @@ export default async function EventsPage({ searchParams }: Props) {
           <h1 className="mt-2 text-[1.65rem] font-semibold leading-tight tracking-tight sm:mt-3 sm:text-4xl md:text-5xl">
             All competitions
           </h1>
-          <p className="mt-2 break-words text-xs text-white/35">
-            {listSource === "first" ? (
-              <>
-                Source:{" "}
-                <span className="text-white/55">FIRST FTC API</span> · seasons{" "}
-                <span className="font-mono text-white/55">
-                  {yearsLoaded.join(", ")}
-                </span>
-              </>
-            ) : listSource === "scout" ? (
-              <>
-                Source:{" "}
-                <a
-                  href={SCOUT_HUB}
-                  className="text-sky-300/90 underline hover:text-sky-200"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  FTC Scout
-                </a>{" "}
-                public REST (same catalog as{" "}
-                <span className="font-mono text-white/45">/events/search</span>
-                ) · seasons{" "}
-                <span className="font-mono text-white/55">
-                  {scoutSeasonsLoaded.join(", ")}
-                </span>
-              </>
-            ) : (
-              <>Demo rows only · default season {defaultSeason}</>
-            )}
-          </p>
           <p className="mt-3 text-sm leading-relaxed text-white/45 sm:mt-4 sm:text-base">
             Official registration and schedules:{" "}
             <a
@@ -742,7 +730,7 @@ export default async function EventsPage({ searchParams }: Props) {
         {view ? (
           <section
             id="events-results"
-            className="mt-6 min-w-0 max-w-full scroll-mt-4 sm:mt-8 sm:scroll-mt-6 md:mt-10"
+            className="mt-6 min-w-0 max-w-full scroll-mt-24 sm:mt-8 sm:scroll-mt-28 md:mt-10"
           >
             <p className="text-xs text-white/40 sm:text-sm">
               <span className="font-medium text-white/55">
