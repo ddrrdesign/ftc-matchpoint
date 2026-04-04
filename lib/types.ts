@@ -23,6 +23,11 @@ export interface Event {
   matchCount: number;
   predictionCount: number;
   insightCount: number;
+  /**
+   * Demo data only: when `code` is fictional, link the FIRST button to a real
+   * FTC Event Web URL (e.g. KZCMP for Central Asia).
+   */
+  firstInspiresUrl?: string;
 }
 
 export interface Team {

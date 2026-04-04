@@ -23,7 +23,7 @@ export const MOCK_EVENTS: Event[] = [
     id: "evt-ca-cas",
     code: "CA-CAS",
     name: "Central Asia Championship (sample)",
-    location: "Almaty, Kazakhstan",
+    location: "Astana, Kazakhstan",
     status: "completed",
     seasonId: MOCK_SEASON.id,
     startDate: "2026-02-10",
@@ -32,6 +32,8 @@ export const MOCK_EVENTS: Event[] = [
     matchCount: 72,
     predictionCount: 12,
     insightCount: 8,
+    firstInspiresUrl:
+      "https://ftc-events.firstinspires.org/2025/KZCMP",
   },
   {
     id: "evt-houston",
@@ -46,6 +48,8 @@ export const MOCK_EVENTS: Event[] = [
     matchCount: 420,
     predictionCount: 0,
     insightCount: 0,
+    firstInspiresUrl:
+      "https://ftc-events.firstinspires.org/2025/FTCCMP1",
   },
   {
     id: "evt-regional-sample",
@@ -60,6 +64,7 @@ export const MOCK_EVENTS: Event[] = [
     matchCount: 64,
     predictionCount: 64,
     insightCount: 8,
+    firstInspiresUrl: "https://ftc-events.firstinspires.org/#allevents",
   },
 ];
 

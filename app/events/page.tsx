@@ -211,11 +211,15 @@ export default async function EventsPage({ searchParams }: Props) {
           dates: mockDateRangeDisplay(e),
           location: e.location,
           venueExtra: null,
-          typeLine: null,
+          typeLine: e.firstInspiresUrl
+            ? "Demo · FIRST link → real page on firstinspires.org"
+            : null,
           teams: String(e.teamCount),
           status: e.status,
           internalHref: `/events/${encodeURIComponent(e.code)}?${qs.toString()}`,
-          firstWebUrl: firstEventWebUrl(defaultSeason, e.code),
+          firstWebUrl:
+            e.firstInspiresUrl ??
+            (e.code ? firstEventWebUrl(defaultSeason, e.code) : null),
           divisionsNote: null,
         };
       })
@@ -278,6 +282,37 @@ export default async function EventsPage({ searchParams }: Props) {
             </p>
           ) : null}
         </header>
+
+        {!apiOn ? (
+          <GlassCard className="mt-8 border-amber-400/30 bg-amber-500/10 p-5 text-sm leading-relaxed text-amber-50/95">
+            <p className="font-semibold text-amber-100">
+              Demo mode: only 3 sample events
+            </p>
+            <p className="mt-2 text-amber-100/80">
+              The full calendar is not loaded because{" "}
+              <span className="font-mono text-amber-50/90">FTC_API_USERNAME</span>{" "}
+              and{" "}
+              <span className="font-mono text-amber-50/90">FTC_API_KEY</span> are
+              not set (e.g. on Vercel → Project → Settings → Environment
+              Variables). Register for API access on{" "}
+              <a
+                href="https://ftc-events.firstinspires.org/services/API"
+                className="text-amber-200 underline hover:text-amber-100"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                FTC Event Web → API
+              </a>
+              .
+            </p>
+            <p className="mt-3 text-xs text-amber-200/70">
+              <span className="font-mono">FIRST</span> on demo rows opens a real
+              Event Web page where we mapped one (e.g. KZCMP for Central Asia).
+              <span className="font-mono"> Analytics</span> stays in this app
+              for the fictional codes (CA-CAS, …).
+            </p>
+          </GlassCard>
+        ) : null}
 
         {apiError && (
           <GlassCard className="mt-8 border-red-400/20 bg-red-500/10 p-4 text-sm text-red-100/90">

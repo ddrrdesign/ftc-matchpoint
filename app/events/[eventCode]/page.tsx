@@ -11,8 +11,8 @@ import {
 import {
   fetchAllMatchesForEvent,
   fetchEventAwards,
+  fetchEventDetailContext,
   fetchRankings,
-  fetchSingleEvent,
   fetchTeamsAtEvent,
 } from "@/lib/ftc-api/service";
 
@@ -25,17 +25,13 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
   const qSeason = parseFtcSeasonQueryParam((await searchParams).season);
   const { eventCode: raw } = await params;
   const eventCode = decodeURIComponent(raw);
-  const season = qSeason ?? getFtcSeasonYear();
+  const preferredSeason = qSeason ?? getFtcSeasonYear();
 
   if (isFtcApiConfigured()) {
-    const listings = await fetchSingleEvent(season, eventCode);
-    if (listings?.ok) {
-      const list = listings.data.events ?? [];
-      const ev =
-        list.find(
-          (e) => (e.code ?? "").toLowerCase() === eventCode.toLowerCase()
-        ) ?? list[0];
-      const code = ev?.code?.trim();
+    const ctx = await fetchEventDetailContext(eventCode, preferredSeason);
+    if (ctx) {
+      const { season, list, ev } = ctx;
+      const code = ev.code?.trim();
       if (code) {
         const codes = [
           ...new Set(

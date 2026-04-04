@@ -54,6 +54,39 @@ export async function fetchSingleEvent(season: number, eventCode: string) {
   return ftcGet<SeasonEventListingsV2>(`/v2.0/${season}/events?${q}`);
 }
 
+/**
+ * Resolves `eventCode` to a listing row, trying the requested API season and
+ * ±1 year (FIRST sometimes uses adjacent season keys for the same game year).
+ */
+export async function fetchEventDetailContext(
+  eventCode: string,
+  preferredSeason: number
+): Promise<{
+  season: number;
+  list: SeasonEventModelV2[];
+  ev: SeasonEventModelV2;
+} | null> {
+  const norm = eventCode.trim().toLowerCase();
+  if (!norm) return null;
+  const candidates = [
+    preferredSeason,
+    preferredSeason - 1,
+    preferredSeason + 1,
+  ].filter((y) => y >= 2000 && y <= 2100);
+  const unique = [...new Set(candidates)];
+  for (const y of unique) {
+    const res = await fetchSingleEvent(y, eventCode);
+    if (!res?.ok) continue;
+    const list = res.data.events ?? [];
+    const ev = list.find(
+      (e) => (e.code ?? "").trim().toLowerCase() === norm
+    );
+    if (!ev?.code?.trim()) continue;
+    return { season: y, list, ev };
+  }
+  return null;
+}
+
 export async function fetchRankings(season: number, eventCode: string) {
   const enc = encodeURIComponent(eventCode);
   return ftcGet<EventRankingsModel>(`/v2.0/${season}/rankings/${enc}`);

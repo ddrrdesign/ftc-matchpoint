@@ -78,12 +78,17 @@ export function EventDetailMock({ event }: { event: Event }) {
               </a>{" "}
               or{" "}
               <a
-                href="https://ftc-events.firstinspires.org/#allevents"
+                href={
+                  event.firstInspiresUrl ??
+                  "https://ftc-events.firstinspires.org/#allevents"
+                }
                 className="text-violet-300 underline hover:text-violet-200"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                FTC Event Web
+                {event.firstInspiresUrl
+                  ? "FIRST Event Web (matching real event) ↗"
+                  : "FTC Event Web"}
               </a>
               .
             </p>
