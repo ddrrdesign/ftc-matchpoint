@@ -38,15 +38,15 @@ export type EventBrowseListRow = {
 
 function MobileEventCard({ r }: { r: EventBrowseListRow }) {
   return (
-    <li className="border-b border-white/[0.06] last:border-b-0">
+    <li className="min-w-0 border-b border-white/[0.06] last:border-b-0">
       <Link
         prefetch
         href={r.detailHref}
-        className="block px-3 py-3 transition active:bg-white/[0.04] sm:px-5 sm:py-4"
+        className="block min-w-0 px-3 py-3 transition active:bg-white/[0.04] sm:px-5 sm:py-4"
       >
-        <div className="flex flex-wrap items-start justify-between gap-2 gap-y-1">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-2 gap-y-1">
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold leading-snug text-white/95 sm:text-base">
+            <p className="break-words text-[15px] font-semibold leading-snug text-white/95 sm:text-base">
               {r.name}
             </p>
             <p className="mt-0.5 font-mono text-[10px] text-white/38 sm:text-[11px]">
@@ -77,7 +77,7 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
           <span className="font-medium tabular-nums text-white/65">{r.teams}</span>
         </p>
       </Link>
-      <div className="flex flex-wrap gap-2 px-3 pb-3 sm:gap-2 sm:px-5 sm:pb-4">
+      <div className="flex min-w-0 flex-wrap gap-2 px-3 pb-3 sm:gap-2 sm:px-5 sm:pb-4">
         {r.primaryExternal ? (
           <a
             href={r.primaryHref}
@@ -116,8 +116,8 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="mt-3 w-full max-w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#06040f]/80 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset] sm:mt-4 md:mt-10 md:rounded-2xl">
-      <ul className="w-full min-w-0 md:hidden">
+    <div className="mt-3 w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#06040f]/80 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset] sm:mt-4 md:mt-10 md:rounded-2xl">
+      <ul className="w-full min-w-0 max-w-full md:hidden">
         {rows.map((r) => (
           <MobileEventCard key={r.rowKey} r={r} />
         ))}

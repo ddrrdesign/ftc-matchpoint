@@ -66,8 +66,8 @@ export function SiteHeader() {
         />
       ) : null}
 
-      <header className="sticky top-0 z-50 border-b border-white/[0.1] bg-[#05030a]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-[#05030a]/75">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+      <header className="sticky top-0 z-50 w-full min-w-0 max-w-full overflow-x-hidden border-b border-white/[0.1] bg-[#05030a]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-[#05030a]/75">
+        <div className="mx-auto min-w-0 max-w-7xl px-4 sm:px-6">
           <div className="flex items-center justify-between gap-3 py-4 sm:py-5">
             <Link
               href="/"

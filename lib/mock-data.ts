@@ -220,8 +220,8 @@ export const MOCK_PREDICTION_SHOWCASE: MatchPrediction = {
   favored: "red",
   confidence: "medium",
   reasons: [
-    "Illustration only: fake team numbers 11111–44444, not real Scout data.",
-    "Red’s composite total NP is higher in this made-up snapshot.",
-    "Open Predictor and enter real team numbers to compare your alliances.",
+    "Demo only: 11111–44444 are placeholders, not FTC Scout data.",
+    "On the real Predictor, you’ll see a scouting read for autonomous vs teleop vs endgame NP — same phase names as in the FTC game manual.",
+    "Enter four real team numbers to get alliance totals and coaching-style bullets from Scout quick stats.",
   ],
 };

@@ -516,7 +516,7 @@ export default async function EventsPage({ searchParams }: Props) {
       <Suspense fallback={null}>
         <EventsViewScroll />
       </Suspense>
-      <main className="mx-auto min-w-0 max-w-7xl overflow-x-clip px-3 py-8 sm:px-6 sm:py-12 md:py-16">
+      <main className="mx-auto min-w-0 w-full max-w-7xl px-3 py-8 sm:px-6 sm:py-12 md:py-16">
         <header className="max-w-3xl">
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-violet-300/55">
             Events
@@ -758,7 +758,7 @@ export default async function EventsPage({ searchParams }: Props) {
         {view ? (
           <section
             id="events-results"
-            className="mt-6 scroll-mt-4 sm:mt-8 sm:scroll-mt-6 md:mt-10"
+            className="mt-6 min-w-0 max-w-full scroll-mt-4 sm:mt-8 sm:scroll-mt-6 md:mt-10"
           >
             <p className="text-xs text-white/40 sm:text-sm">
               <span className="font-medium text-white/55">

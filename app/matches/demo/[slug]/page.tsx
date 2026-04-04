@@ -10,12 +10,14 @@ import {
   MOCK_STATS_CA,
   MOCK_TEAMS,
 } from "@/lib/mock-data";
+import { buildDemoComparisonAxes } from "@/lib/demo-match-axis-analysis";
 import {
   allianceStrength,
   confidenceFromStrengthGap,
   winProbabilities,
 } from "@/lib/prediction";
 import { formatAlliance } from "@/lib/format";
+import { FTC_GAME_MANUAL_URL } from "@/lib/predictor-analysis";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -48,6 +50,14 @@ export default async function DemoMatchPage({ params }: Props) {
     "Early-event predictions carry lower confidence",
   ];
 
+  const axisCards =
+    redStats.length === 2 && blueStats.length === 2
+      ? buildDemoComparisonAxes(
+          [redStats[0], redStats[1]],
+          [blueStats[0], blueStats[1]]
+        )
+      : null;
+
   if (redStats.length === 2 && blueStats.length === 2) {
     const rS = allianceStrength(redStats[0], redStats[1]);
     const bS = allianceStrength(blueStats[0], blueStats[1]);
@@ -56,6 +66,18 @@ export default async function DemoMatchPage({ params }: Props) {
     blueP = w.blue;
     favored = w.red >= w.blue ? "red" : "blue";
     confidence = confidenceFromStrengthGap(rS, bS);
+    const gap = Math.abs(rS - bS);
+    reasons = [
+      gap >= 22
+        ? `Alliance strength gap is wide (~${gap.toFixed(0)} index pts) — the model leans on combined auto, teleop, endgame, consistency, and form.`
+        : gap >= 8
+          ? "Moderate strength gap: both alliances stay plausible; execution and penalties still flip outcomes."
+          : "Thin strength gap — treat probabilities as a tie-breaker, not a verdict.",
+      favored === "red"
+        ? "Red’s mock profile scores higher on the weighted strength index (qual-style averages + consistency + recent form)."
+        : "Blue’s mock profile scores higher on the weighted strength index (qual-style averages + consistency + recent form).",
+      "Phase breakdown below uses the same autonomous / teleop / endgame wording as the FTC game manual.",
+    ];
   } else if (match.id === MOCK_PREDICTION_SHOWCASE.matchId) {
     redP = MOCK_PREDICTION_SHOWCASE.redWinProbability;
     blueP = MOCK_PREDICTION_SHOWCASE.blueWinProbability;
@@ -72,7 +94,7 @@ export default async function DemoMatchPage({ params }: Props) {
   return (
     <PageShell>
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-6 py-10 md:py-14">
+      <main className="mx-auto min-w-0 w-full max-w-7xl overflow-x-hidden px-3 py-10 sm:px-6 md:py-14">
         <Link
           href="/events/CA-CAS#matches"
           className="text-sm text-violet-300/80"
@@ -153,19 +175,38 @@ export default async function DemoMatchPage({ params }: Props) {
           </ul>
         </section>
 
-        <section className="mt-10">
+        <section className="mt-10 min-w-0 max-w-full">
           <h2 className="text-lg font-semibold">Comparison axes</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {["Auto", "Teleop", "Endgame", "Consistency", "Avg total"].map(
-              (axis) => (
-                <GlassCard key={axis} className="p-4 text-sm">
-                  <p className="text-white/45">{axis}</p>
-                  <p className="mt-2 text-white/80">
-                    Side-by-side bars can plug in here when charts ship.
-                  </p>
-                </GlassCard>
-              )
-            )}
+          <p className="mt-2 max-w-2xl text-sm text-white/45">
+            Scouting-style read from this page’s mock stats (not live Scout). For
+            official phase rules see the{" "}
+            <a
+              href={FTC_GAME_MANUAL_URL}
+              className="text-violet-300/90 underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FTC game manual
+            </a>
+            .
+          </p>
+          <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {axisCards
+              ? axisCards.map((card) => (
+                  <GlassCard key={card.title} className="min-w-0 p-4 text-sm">
+                    <p className="font-medium text-white/70">{card.title}</p>
+                    <p className="mt-2 leading-relaxed text-white/80">
+                      {card.body}
+                    </p>
+                  </GlassCard>
+                ))
+              : (
+                  <GlassCard className="col-span-full p-4 text-sm text-white/65">
+                    Comparison axes need stats for all four teams in this sample
+                    match. Demo teams 11111–44444 are placeholders without mock
+                    rows — pick a QF from the home page for a full breakdown.
+                  </GlassCard>
+                )}
           </div>
         </section>
       </main>

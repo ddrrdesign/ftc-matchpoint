@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
@@ -13,6 +14,10 @@ import {
   maxOprTotalNp,
   oprTotalNpAtEvent,
 } from "@/lib/ftc-scout/queries";
+import {
+  buildPredictorScoutingRead,
+  FTC_GAME_MANUAL_URL,
+} from "@/lib/predictor-analysis";
 import {
   predictorConfidenceExplanation,
   predictorSplitHint,
@@ -56,6 +61,23 @@ function sumPair(
 ): number | null {
   if (!a || !b) return null;
   return a[key].value + b[key].value;
+}
+
+function BoldSegments({ text }: { text: string }): ReactNode {
+  const parts = text.split(/\*\*/);
+  return (
+    <>
+      {parts.map((p, i) =>
+        i % 2 === 1 ? (
+          <strong key={i} className="font-semibold text-white/85">
+            {p}
+          </strong>
+        ) : (
+          <span key={i}>{p}</span>
+        )
+      )}
+    </>
+  );
 }
 
 type Props = { searchParams: Promise<Search> };
@@ -154,8 +176,23 @@ export default async function PredictorPage({ searchParams }: Props) {
   const predictorSplit = predictorSplitHint(
     totEdge ?? 0,
     autoEdge,
-    dcEdge
+    dcEdge,
+    egEdge
   );
+
+  const scoutingRead =
+    q0 && q1 && q2 && q3 && totEdge != null
+      ? buildPredictorScoutingRead({
+          q0,
+          q1,
+          q2,
+          q3,
+          totEdge,
+          autoEdge: autoEdge ?? 0,
+          dcEdge: dcEdge ?? 0,
+          egEdge: egEdge ?? 0,
+        })
+      : null;
 
   const swapHref =
     red && blue
@@ -287,6 +324,31 @@ export default async function PredictorPage({ searchParams }: Props) {
                         {predictorSplit}
                       </p>
                     ) : null}
+                    {scoutingRead && scoutingRead.bullets.length > 0 ? (
+                      <div className="mt-5 max-w-xl border-t border-white/[0.06] pt-5">
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                          Scouting read
+                        </p>
+                        <ul className="mt-3 space-y-2.5">
+                          {scoutingRead.bullets.map((line) => (
+                            <li
+                              key={line}
+                              className="flex gap-3 text-sm leading-relaxed text-white/70"
+                            >
+                              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400/80" />
+                              <span>
+                                <BoldSegments text={line} />
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        {scoutingRead.sampleNote ? (
+                          <p className="mt-3 text-xs leading-relaxed text-white/40">
+                            {scoutingRead.sampleNote}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-center sm:min-w-[240px]">
                     <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3">
@@ -360,10 +422,18 @@ export default async function PredictorPage({ searchParams }: Props) {
                   </div>
                 )}
                 <p className="mt-6 text-[11px] leading-relaxed text-white/35">
-                  Share: copy URL. Odds come from a logistic on the Total NP gap
-                  only (Scout composite). Auto / teleop / endgame lines explain
-                  where that gap might come from — they are not separate
-                  prediction models. Cross-check on{" "}
+                  Share: copy URL. Win % uses a logistic on the Total NP gap only
+                  (Scout composite). Phase labels follow the rulebook:{" "}
+                  <a
+                    href={FTC_GAME_MANUAL_URL}
+                    className="text-violet-400/90 underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    FTC game manual
+                  </a>
+                  . Auto / teleop / endgame lines explain where the gap might
+                  come from — not separate models. Cross-check on{" "}
                   <a
                     href="https://ftcscout.org"
                     className="text-violet-400/90 underline"
@@ -380,8 +450,8 @@ export default async function PredictorPage({ searchParams }: Props) {
                     rel="noreferrer"
                   >
                     FIRST Event Web
-                  </a>{" "}
-                  for real match context.
+                  </a>
+                  .
                 </p>
               </GlassCard>
             )}

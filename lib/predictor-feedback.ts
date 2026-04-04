@@ -21,28 +21,33 @@ export function predictorTakeawayParagraph(
 ): string {
   const side = favored === "red" ? "Red" : "Blue";
   if (conf === "low" && totEdgeAbs < 20) {
-    return `${side} is slightly ahead on summed Scout Total NP, but the margin is thin — worth watching which alliance owns auto and endgame in practice.`;
+    return `${side} is slightly ahead on summed Scout Total NP, but the margin is thin — on the field, autonomous consistency, teleop cycles, and endgame tasks (see the game manual) usually decide close matches.`;
   }
   if (conf === "high" || totEdgeAbs >= 50) {
-    return `${side} shows a much stronger combined Total NP profile in this data slice; if that holds on the field, they are the logical pre-match favorite.`;
+    return `${side} shows a much stronger combined Total NP profile in this data slice; if that holds on the field, they are the logical pre-match favorite — still verify autonomous reliability and endgame against your own notes.`;
   }
-  return `${side} has the better combined Total NP in Scout’s composite — use the Auto / Teleop / Endgame lines below to see where that edge comes from.`;
+  return `${side} has the better combined Total NP in Scout’s composite — the scouting read below breaks down autonomous, teleop (driver-controlled), and endgame NP so you can explain *why* the model leans that way.`;
 }
 
 export function predictorSplitHint(
   totEdge: number,
   autoEdge: number | null,
-  dcEdge: number | null
+  dcEdge: number | null,
+  egEdge: number | null
 ): string | null {
   if (autoEdge == null || dcEdge == null) return null;
   const totSign = Math.sign(totEdge);
   const autoSign = Math.sign(autoEdge);
   const dcSign = Math.sign(dcEdge);
+  const egSign = egEdge != null ? Math.sign(egEdge) : 0;
   if (totSign !== 0 && autoSign !== 0 && autoSign !== totSign) {
-    return "Auto points lean the other way than Total NP — the favorite may be winning on teleop or endgame, not the sandstorm.";
+    return "Autonomous NP leans the other way than Total NP — the favorite may be building the margin in teleop or endgame, not in the autonomous period.";
   }
   if (totSign !== 0 && dcSign !== 0 && dcSign !== totSign) {
-    return "Teleop (DC) leans opposite the total — check whether one alliance is padding scores in a single phase.";
+    return "Teleop (driver-controlled) NP leans opposite the total — one side might be stronger in autonomous or endgame while weaker in DC on this slice.";
+  }
+  if (totSign !== 0 && egSign !== 0 && egSign !== totSign) {
+    return "Endgame NP leans the other way than Total NP — the favorite’s edge is coming earlier in the match on these numbers.";
   }
   return null;
 }

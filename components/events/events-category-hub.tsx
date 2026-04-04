@@ -36,7 +36,7 @@ function HubColumn({ title, subtitle, view, q, total, active }: ColumnProps) {
       <Link
         prefetch
         href={viewHref(view, q)}
-        className="touch-manipulation flex flex-1 flex-col select-none rounded-lg py-0.5 outline-none ring-violet-500/40 transition-transform duration-100 focus-visible:ring-2 active:scale-[0.99] active:bg-white/[0.04] sm:rounded-xl sm:py-0 sm:active:scale-100 sm:active:bg-transparent"
+        className="touch-manipulation flex flex-1 flex-col select-none rounded-lg py-0.5 outline-none ring-violet-500/40 transition-colors duration-100 focus-visible:ring-2 active:bg-white/[0.08] sm:rounded-xl sm:py-0 sm:active:bg-transparent"
       >
         <h2 className="text-sm font-semibold leading-snug tracking-tight text-white/95 sm:text-lg">
           {title}

@@ -14,7 +14,7 @@ function seasonFilterHref(
 }
 
 const chipBase =
-  "touch-manipulation inline-flex min-h-[48px] shrink-0 select-none items-center justify-center whitespace-nowrap rounded-full border px-4 py-2.5 text-[13px] font-semibold tabular-nums transition-transform duration-100 will-change-transform active:scale-[0.96] sm:min-h-0 sm:px-3.5 sm:py-2 sm:text-xs sm:active:scale-100";
+  "touch-manipulation inline-flex min-h-[48px] shrink-0 select-none items-center justify-center whitespace-nowrap rounded-full border px-4 py-2.5 text-[13px] font-semibold tabular-nums transition-colors duration-100 active:opacity-90 sm:min-h-0 sm:px-3.5 sm:py-2 sm:text-xs";
 
 const chipInactive =
   "border-white/14 bg-white/[0.06] text-white/75 hover:border-white/22 hover:bg-white/[0.1] active:bg-white/[0.14]";

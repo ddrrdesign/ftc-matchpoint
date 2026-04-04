@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Prevent iOS horizontal “rubber band” from clipping or shifting fixed-width content */
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 :root {
   --background: #05030a;
   --foreground: #f4f4f5;
@@ -16,6 +22,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  max-width: 100%;
+  overflow-x: clip;
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
