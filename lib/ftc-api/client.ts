@@ -2,7 +2,19 @@ import "server-only";
 
 import { getFtcCredentials } from "./env";
 
-const FTC_API_BASE = "https://ftc-api.firstinspires.org";
+/**
+ * Host only (no `/v2.0`). Request paths already start with `/v2.0/...`.
+ * `FTC_API_BASE_URL` may be set to `https://…/v2.0` — trailing `/v2.0` is stripped.
+ */
+function ftcApiOrigin(): string {
+  let raw =
+    process.env.FTC_API_ORIGIN?.trim() ||
+    process.env.FTC_API_BASE_URL?.trim();
+  if (!raw) return "https://ftc-api.firstinspires.org";
+  raw = raw.replace(/\/$/, "");
+  if (raw.endsWith("/v2.0")) raw = raw.slice(0, -"/v2.0".length);
+  return raw.replace(/\/$/, "") || "https://ftc-api.firstinspires.org";
+}
 
 function authHeader(): string | null {
   const c = getFtcCredentials();
@@ -26,7 +38,7 @@ export async function ftcGet<T>(
   if (!auth) return null;
 
   const revalidate = options?.revalidate ?? 120;
-  const url = `${FTC_API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${ftcApiOrigin()}${path.startsWith("/") ? path : `/${path}`}`;
 
   const res = await fetch(url, {
     headers: {

@@ -7,5 +7,12 @@ FTC_API_KEY=your_authorization_key_uuid_here
 # Calendar year used in API paths (e.g. 2026 for the 2025–2026 FTC season)
 FTC_SEASON_YEAR=2026
 
+# Optional: API host (default https://ftc-api.firstinspires.org). If you set …/v2.0, it is normalized.
+# FTC_API_ORIGIN=https://ftc-api.firstinspires.org
+# FTC_API_BASE_URL=https://ftc-api.firstinspires.org/v2.0
+
+# Predictions event catalog: comma-separated API season years (optional)
+# FTC_PREDICTIONS_API_SEASONS=2026,2025
+
 # FTC Scout REST (https://ftcscout.org/api/rest) - season year, e.g. 2025 for Decode
 FTC_SCOUT_SEASON=2025
