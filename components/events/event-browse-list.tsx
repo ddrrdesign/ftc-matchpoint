@@ -15,6 +15,8 @@ function statusPillClass(s: EventStatus): string {
 
 export type EventBrowseListRow = {
   rowKey: string;
+  /** FTC / Event Web season year in URLs (e.g. 2025). */
+  seasonYear: number;
   code: string;
   name: string;
   dates: string;
@@ -34,10 +36,13 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
   return (
     <div className="mt-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#06040f]/80 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[800px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-white/[0.08] bg-white/[0.03] text-[11px] font-medium uppercase tracking-wider text-white/40">
-              <th className="whitespace-nowrap px-4 py-3 pl-5">Code</th>
+              <th className="whitespace-nowrap px-3 py-3 pl-5 text-center tabular-nums">
+                Year
+              </th>
+              <th className="whitespace-nowrap px-4 py-3">Code</th>
               <th className="min-w-[200px] px-4 py-3">Event</th>
               <th className="whitespace-nowrap px-4 py-3">Dates</th>
               <th className="min-w-[160px] px-4 py-3">Where</th>
@@ -56,7 +61,10 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
                 key={r.rowKey}
                 className="transition-colors hover:bg-white/[0.02]"
               >
-                <td className="whitespace-nowrap px-4 py-3.5 pl-5 align-top font-mono text-xs text-violet-300/80">
+                <td className="whitespace-nowrap px-3 py-3.5 pl-5 align-top text-center text-xs tabular-nums text-white/50">
+                  {r.seasonYear}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3.5 align-top font-mono text-xs text-violet-300/80">
                   {r.code || "—"}
                 </td>
                 <td className="px-4 py-3.5 align-top">

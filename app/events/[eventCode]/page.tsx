@@ -3,7 +3,11 @@ import { EventDetailApi } from "@/components/events/event-detail-api";
 import type { EventDivisionSlice } from "@/components/events/event-detail-api";
 import { EventDetailMock } from "@/components/events/event-detail-mock";
 import { getEventByCode } from "@/lib/mock-data";
-import { isFtcApiConfigured, getFtcSeasonYear } from "@/lib/ftc-api/env";
+import {
+  getFtcSeasonYear,
+  isFtcApiConfigured,
+  parseFtcSeasonQueryParam,
+} from "@/lib/ftc-api/env";
 import {
   fetchAllMatchesForEvent,
   fetchEventAwards,
@@ -12,12 +16,16 @@ import {
   fetchTeamsAtEvent,
 } from "@/lib/ftc-api/service";
 
-type Props = { params: Promise<{ eventCode: string }> };
+type Props = {
+  params: Promise<{ eventCode: string }>;
+  searchParams: Promise<{ season?: string | string[] }>;
+};
 
-export default async function EventDetailPage({ params }: Props) {
+export default async function EventDetailPage({ params, searchParams }: Props) {
+  const qSeason = parseFtcSeasonQueryParam((await searchParams).season);
   const { eventCode: raw } = await params;
   const eventCode = decodeURIComponent(raw);
-  const season = getFtcSeasonYear();
+  const season = qSeason ?? getFtcSeasonYear();
 
   if (isFtcApiConfigured()) {
     const listings = await fetchSingleEvent(season, eventCode);

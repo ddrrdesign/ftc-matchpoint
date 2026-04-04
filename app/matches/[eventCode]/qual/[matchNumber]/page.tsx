@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { MatchDetail, statsMapFromRankings } from "@/components/matches/match-detail";
-import { getFtcSeasonYear } from "@/lib/ftc-api/env";
+import { getFtcSeasonYear, parseFtcSeasonQueryParam } from "@/lib/ftc-api/env";
 import {
   fetchOneMatch,
   fetchRankings,
@@ -12,15 +12,17 @@ type Props = {
     eventCode: string;
     matchNumber: string;
   }>;
+  searchParams: Promise<{ season?: string | string[] }>;
 };
 
-export default async function QualMatchPage({ params }: Props) {
+export default async function QualMatchPage({ params, searchParams }: Props) {
   const { eventCode: raw, matchNumber: numRaw } = await params;
   const eventCode = decodeURIComponent(raw);
   const matchNumber = Number.parseInt(numRaw, 10);
   if (Number.isNaN(matchNumber)) notFound();
 
-  const season = getFtcSeasonYear();
+  const qSeason = parseFtcSeasonQueryParam((await searchParams).season);
+  const season = qSeason ?? getFtcSeasonYear();
   const match = await fetchOneMatch(season, eventCode, "qual", matchNumber);
   if (!match) notFound();
 
@@ -39,6 +41,7 @@ export default async function QualMatchPage({ params }: Props) {
     <MatchDetail
       eventCode={eventCode}
       eventName={eventName}
+      seasonYear={season}
       match={match}
       statsByTeamNumber={statsMap}
     />

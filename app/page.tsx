@@ -5,6 +5,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { PredictionShowcase } from "@/components/home/prediction-showcase";
 import { formatAlliance } from "@/lib/format";
+import { getFtcSeasonYear } from "@/lib/ftc-api/env";
 import {
   MOCK_EVENTS,
   MOCK_MATCHES_HOME,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/mock-data";
 
 const featured = MOCK_EVENTS[0]!;
+const featuredEventHref = `/events/${encodeURIComponent(featured.code)}?season=${getFtcSeasonYear()}`;
 
 export default function Home() {
   return (
@@ -108,7 +110,7 @@ export default function Home() {
               </p>
             </div>
             <Link
-              href={`/events/${featured.code}`}
+              href={featuredEventHref}
               className="text-sm text-violet-300/90 hover:text-violet-200"
             >
               Open event →
@@ -125,7 +127,7 @@ export default function Home() {
               </div>
             </div>
             <Link
-              href={`/events/${featured.code}`}
+              href={featuredEventHref}
               className="mt-5 inline-flex shrink-0 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/90 md:mt-0"
             >
               View dashboard

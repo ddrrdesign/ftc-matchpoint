@@ -340,7 +340,7 @@ export function EventDetailApi({
                 return (
                   <Link
                     key={`${m.tournamentLevel}-${m.series}-${m.matchNumber}-${i}`}
-                    href={matchHref(eventCode, m)}
+                    href={matchHref(eventCode, m, seasonYear)}
                     className="grid grid-cols-[1fr_1fr_1fr_0.9fr_0.65fr] items-center border-b border-white/[0.05] px-4 py-3.5 text-sm transition hover:bg-white/[0.03] md:px-6"
                   >
                     <span className="font-medium text-violet-200/90">

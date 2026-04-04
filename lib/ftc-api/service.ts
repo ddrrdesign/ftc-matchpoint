@@ -8,6 +8,7 @@ import type {
   EventRankingsModel,
   MatchResultModelV2,
   SeasonEventListingsV2,
+  SeasonEventModelV2,
   SeasonTeamListingsV2,
   SeasonTeamModelV2,
 } from "./types";
@@ -16,6 +17,36 @@ import { matchLabel, normalizeTournamentQuery, teamsToAlliances } from "./match-
 export async function fetchEventListings(season?: number) {
   const y = season ?? getFtcSeasonYear();
   return ftcGet<SeasonEventListingsV2>(`/v2.0/${y}/events`);
+}
+
+export type SeasonEventChunk = {
+  season: number;
+  events: SeasonEventModelV2[];
+  ok: boolean;
+  status?: number;
+};
+
+/** Parallel listings for multiple seasons (same endpoint as FTC Event Web per year). */
+export async function fetchEventListingsForSeasons(
+  seasons: number[]
+): Promise<SeasonEventChunk[]> {
+  return Promise.all(
+    seasons.map(async (season) => {
+      const res = await fetchEventListings(season);
+      if (!res) {
+        return { season, events: [], ok: false };
+      }
+      if (!res.ok) {
+        return {
+          season,
+          events: [],
+          ok: false,
+          status: res.status,
+        };
+      }
+      return { season, events: res.data.events ?? [], ok: true };
+    })
+  );
 }
 
 export async function fetchSingleEvent(season: number, eventCode: string) {
@@ -80,6 +111,39 @@ export async function fetchTeamCountsForEventCodes(
   }
   const workers = Math.min(concurrency, codes.length);
   await Promise.all(Array.from({ length: workers }, () => worker()));
+  return out;
+}
+
+export function teamCountCacheKey(season: number, code: string): string {
+  return `${season}:${code.trim()}`;
+}
+
+/** One batched teams?page=1 pass per distinct season in `pairs`. */
+export async function fetchTeamCountsForSeasonCodePairs(
+  pairs: { season: number; code: string }[],
+  concurrencyPerSeason = 10
+): Promise<Map<string, number | null>> {
+  const out = new Map<string, number | null>();
+  const bySeason = new Map<number, string[]>();
+  for (const { season, code } of pairs) {
+    const c = code.trim();
+    if (!c) continue;
+    const arr = bySeason.get(season) ?? [];
+    if (!arr.includes(c)) arr.push(c);
+    bySeason.set(season, arr);
+  }
+  await Promise.all(
+    [...bySeason.entries()].map(async ([season, codes]) => {
+      const m = await fetchTeamCountsForEventCodes(
+        season,
+        codes,
+        concurrencyPerSeason
+      );
+      for (const code of codes) {
+        out.set(teamCountCacheKey(season, code), m.get(code) ?? null);
+      }
+    })
+  );
   return out;
 }
 
@@ -157,18 +221,24 @@ export async function fetchAllMatchesForEvent(
 
 export function matchHref(
   eventCode: string,
-  m: MatchResultModelV2
+  m: MatchResultModelV2,
+  seasonYear?: number
 ): string {
   const level = normalizeTournamentQuery(m.tournamentLevel ?? "");
   const num = m.matchNumber ?? 0;
+  let path: string;
   if (level === "qual") {
-    return `/matches/${encodeURIComponent(eventCode)}/qual/${num}`;
-  }
-  if (level === "playoff") {
+    path = `/matches/${encodeURIComponent(eventCode)}/qual/${num}`;
+  } else if (level === "playoff") {
     const s = m.series ?? 0;
-    return `/matches/${encodeURIComponent(eventCode)}/playoff/${s}/${num}`;
+    path = `/matches/${encodeURIComponent(eventCode)}/playoff/${s}/${num}`;
+  } else {
+    path = `/matches/${encodeURIComponent(eventCode)}/qual/${num}`;
   }
-  return `/matches/${encodeURIComponent(eventCode)}/qual/${num}`;
+  if (seasonYear != null) {
+    return `${path}?season=${encodeURIComponent(String(seasonYear))}`;
+  }
+  return path;
 }
 
 export { matchLabel, teamsToAlliances, normalizeTournamentQuery };

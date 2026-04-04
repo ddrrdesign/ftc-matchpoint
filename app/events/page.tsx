@@ -7,7 +7,11 @@ import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MOCK_EVENTS } from "@/lib/mock-data";
 import type { Event } from "@/lib/types";
-import { isFtcApiConfigured, getFtcSeasonYear } from "@/lib/ftc-api/env";
+import {
+  getFtcSeasonYear,
+  getFtcSeasonYearsForEventIndex,
+  isFtcApiConfigured,
+} from "@/lib/ftc-api/env";
 import {
   compareEventsByStartDesc,
   dedupeEventsByCode,
@@ -20,14 +24,16 @@ import {
 } from "@/lib/ftc-api/event-presentation";
 import { deriveEventStatus, formatEventLocation } from "@/lib/ftc-api/event-status";
 import {
-  fetchEventListings,
-  fetchTeamCountsForEventCodes,
+  fetchEventListingsForSeasons,
+  fetchTeamCountsForSeasonCodePairs,
+  teamCountCacheKey,
 } from "@/lib/ftc-api/service";
 import type { SeasonEventModelV2 } from "@/lib/ftc-api/types";
 
 const OFFICIAL_EVENTS_URL = "https://ftc-events.firstinspires.org/#allevents";
 
-const MAX_TEAM_COUNT_LOOKUPS = 80;
+/** Max (season, code) pairs for which we load team totals (keeps the page fast). */
+const MAX_TEAM_PAIR_LOOKUPS = 100;
 
 function filterMockEvents(q: string): Event[] {
   if (!q) return MOCK_EVENTS;
@@ -84,63 +90,105 @@ export default async function EventsPage({ searchParams }: Props) {
   const q = typeof raw === "string" ? raw.trim().toLowerCase() : "";
 
   const apiOn = isFtcApiConfigured();
-  const season = getFtcSeasonYear();
-  const apiRes = apiOn ? await fetchEventListings(season) : null;
+  const defaultSeason = getFtcSeasonYear();
+  const indexSeasons = getFtcSeasonYearsForEventIndex();
 
   let apiError: { status: number; message: string } | null = null;
-  let apiEvents: SeasonEventModelV2[] = [];
+  let partialSeasonLoadFail = false;
+  let succeededChunks: { season: number; events: SeasonEventModelV2[] }[] =
+    [];
 
-  if (apiOn && apiRes) {
-    if (apiRes.ok) {
-      apiEvents = apiRes.data.events ?? [];
-    } else {
-      apiError = { status: apiRes.status, message: apiRes.message };
+  if (apiOn) {
+    const chunks = await fetchEventListingsForSeasons(indexSeasons);
+    const okChunks = chunks.filter((c) => c.ok);
+    const badChunks = chunks.filter((c) => !c.ok);
+    partialSeasonLoadFail =
+      badChunks.length > 0 && okChunks.some((c) => c.events.length > 0);
+
+    succeededChunks = okChunks.map((c) => ({
+      season: c.season,
+      events: c.events,
+    }));
+
+    const totalEvents = succeededChunks.reduce(
+      (n, c) => n + c.events.length,
+      0
+    );
+
+    if (okChunks.length === 0 && badChunks.length > 0) {
+      apiError = {
+        status: badChunks[0]?.status ?? 0,
+        message: "Could not load any season from the API.",
+      };
+    } else if (totalEvents === 0 && apiOn && okChunks.length > 0) {
+      /* all seasons empty — still use API mode with empty table */
     }
   }
 
-  const filteredApi = filterApiEvents(apiEvents, q);
-  const filteredMock = [...filterMockEvents(q)].sort(compareMockByStartDesc);
+  const showApi =
+    apiOn &&
+    succeededChunks.length > 0 &&
+    succeededChunks.some((c) => c.events.length > 0);
 
-  const showApi = apiOn && apiRes?.ok && apiEvents.length > 0;
+  type RowSource = {
+    seasonYear: number;
+    m: ReturnType<typeof dedupeEventsByCode>[number];
+  };
+
+  const rowSources: RowSource[] = [];
+  if (showApi) {
+    for (const { season, events } of succeededChunks) {
+      const filtered = filterApiEvents(events, q);
+      for (const m of dedupeEventsByCode(filtered)) {
+        rowSources.push({ seasonYear: season, m });
+      }
+    }
+    rowSources.sort((a, b) => {
+      const t = compareEventsByStartDesc(a.m.event, b.m.event);
+      if (t !== 0) return t;
+      return b.seasonYear - a.seasonYear;
+    });
+  }
 
   let teamCounts = new Map<string, number | null>();
-  let mergedList: ReturnType<typeof dedupeEventsByCode> = [];
+  if (showApi && rowSources.length > 0) {
+    const pairs = rowSources
+      .map(({ seasonYear, m }) => ({
+        season: seasonYear,
+        code: m.event.code?.trim() ?? "",
+      }))
+      .filter((p) => p.code.length > 0);
 
-  if (showApi) {
-    mergedList = dedupeEventsByCode(filteredApi);
-    mergedList.sort((a, b) =>
-      compareEventsByStartDesc(a.event, b.event)
-    );
-    const codes = mergedList
-      .map((m) => m.event.code?.trim())
-      .filter((c): c is string => Boolean(c));
-    if (codes.length > 0 && codes.length <= MAX_TEAM_COUNT_LOOKUPS) {
-      teamCounts = await fetchTeamCountsForEventCodes(season, codes, 10);
+    if (pairs.length > 0 && pairs.length <= MAX_TEAM_PAIR_LOOKUPS) {
+      teamCounts = await fetchTeamCountsForSeasonCodePairs(pairs, 10);
     }
   }
 
   const apiRows: EventBrowseListRow[] = showApi
-    ? mergedList.map((m, i) => {
+    ? rowSources.map(({ seasonYear, m }, i) => {
         const e = m.event;
         const code = e.code?.trim() ?? "";
         const st = deriveEventStatus(e);
-        const teamN = code ? teamCounts.get(code) ?? null : null;
+        const key = code ? teamCountCacheKey(seasonYear, code) : "";
+        const teamN = key ? teamCounts.get(key) ?? null : null;
         const dates = formatEventDateRange(e) ?? "TBA";
         const loc = formatEventLocation(e);
         const venue = formatEventVenueLine(e);
+        const qs = new URLSearchParams();
+        qs.set("season", String(seasonYear));
         return {
-          rowKey: code || e.eventId || `row-${i}`,
+          rowKey: `${seasonYear}-${code || e.eventId || i}`,
+          seasonYear,
           code,
           name: (e.name ?? code).trim() || "Event",
           dates,
           location: loc || "—",
-          venueExtra:
-            venue && venue !== loc ? venue : null,
+          venueExtra: venue && venue !== loc ? venue : null,
           typeLine: formatEventTypeLine(e),
           teams: teamN != null ? String(teamN) : "—",
           status: st,
-          internalHref: `/events/${encodeURIComponent(code || "unknown")}`,
-          firstWebUrl: code ? firstEventWebUrl(season, code) : null,
+          internalHref: `/events/${encodeURIComponent(code || "unknown")}?${qs.toString()}`,
+          firstWebUrl: code ? firstEventWebUrl(seasonYear, code) : null,
           divisionsNote:
             m.sourceRowCount > 1
               ? `${m.sourceRowCount} divisions (merged)`
@@ -149,24 +197,34 @@ export default async function EventsPage({ searchParams }: Props) {
       })
     : [];
 
+  const filteredMock = [...filterMockEvents(q)].sort(compareMockByStartDesc);
+
   const mockRows: EventBrowseListRow[] = !showApi
-    ? filteredMock.map((e) => ({
-        rowKey: e.id,
-        code: e.code,
-        name: e.name,
-        dates: mockDateRangeDisplay(e),
-        location: e.location,
-        venueExtra: null,
-        typeLine: null,
-        teams: String(e.teamCount),
-        status: e.status,
-        internalHref: `/events/${encodeURIComponent(e.code)}`,
-        firstWebUrl: firstEventWebUrl(season, e.code),
-        divisionsNote: null,
-      }))
+    ? filteredMock.map((e) => {
+        const qs = new URLSearchParams();
+        qs.set("season", String(defaultSeason));
+        return {
+          rowKey: e.id,
+          seasonYear: defaultSeason,
+          code: e.code,
+          name: e.name,
+          dates: mockDateRangeDisplay(e),
+          location: e.location,
+          venueExtra: null,
+          typeLine: null,
+          teams: String(e.teamCount),
+          status: e.status,
+          internalHref: `/events/${encodeURIComponent(e.code)}?${qs.toString()}`,
+          firstWebUrl: firstEventWebUrl(defaultSeason, e.code),
+          divisionsNote: null,
+        };
+      })
     : [];
 
   const totalShown = showApi ? apiRows.length : mockRows.length;
+  const yearsLoaded = showApi
+    ? [...new Set(succeededChunks.map((c) => c.season))].sort((a, b) => b - a)
+    : [];
 
   return (
     <PageShell>
@@ -180,10 +238,24 @@ export default async function EventsPage({ searchParams }: Props) {
             All competitions
           </h1>
           <p className="mt-2 text-xs text-white/35">
-            Season {season} (same year key as FTC Event Web URLs and API)
+            {showApi ? (
+              <>
+                Loaded{" "}
+                <span className="text-white/50">{yearsLoaded.length}</span> API
+                season{yearsLoaded.length === 1 ? "" : "s"}:{" "}
+                <span className="font-mono text-white/55">
+                  {yearsLoaded.join(", ")}
+                </span>
+                . Override with{" "}
+                <span className="font-mono">FTC_SEASON_YEARS</span> or{" "}
+                <span className="font-mono">FTC_SEASON_INDEX_SPAN</span>.
+              </>
+            ) : (
+              <>Default season {defaultSeason} · demo rows when API is off.</>
+            )}
           </p>
           <p className="mt-4 text-base leading-relaxed text-white/45">
-            Full season index from the same data FIRST publishes on{" "}
+            Merged index from the same FIRST listings as{" "}
             <a
               href={OFFICIAL_EVENTS_URL}
               target="_blank"
@@ -192,18 +264,14 @@ export default async function EventsPage({ searchParams }: Props) {
             >
               FTC Event Web
             </a>
-            . Use search to filter; open a row for rankings, matches, and
-            awards here, or the FIRST link for the official event page on
-            firstinspires.org.
+            , one row per event code per season. Use search to narrow; Analytics
+            opens this app with the correct season in the URL.
           </p>
-          {showApi &&
-          mergedList.length > 0 &&
-          mergedList.filter((m) => m.event.code?.trim()).length >
-            MAX_TEAM_COUNT_LOOKUPS ? (
+          {showApi && rowSources.length > MAX_TEAM_PAIR_LOOKUPS ? (
             <p className="mt-3 max-w-2xl text-xs text-white/35">
-              Team counts load in batches. With more than{" "}
-              {MAX_TEAM_COUNT_LOOKUPS} event codes, the Teams column shows “—”
-              until you narrow the list with search.
+              Team counts load in batches. More than{" "}
+              {MAX_TEAM_PAIR_LOOKUPS} rows after search — Teams shows “—” until
+              you filter further.
             </p>
           ) : null}
         </header>
@@ -214,10 +282,17 @@ export default async function EventsPage({ searchParams }: Props) {
               Could not load events ({apiError.status})
             </p>
             <p className="mt-2 text-red-200/70">
-              Showing demo rows below. Check API credentials on the server.
+              Showing demo rows below if available.
             </p>
           </GlassCard>
         )}
+
+        {partialSeasonLoadFail && showApi ? (
+          <GlassCard className="mt-6 border-amber-400/15 bg-amber-500/8 p-3 text-xs text-amber-100/85">
+            Some season requests failed; the table shows seasons that loaded
+            successfully.
+          </GlassCard>
+        ) : null}
 
         <form className="mt-10 max-w-xl" method="get" action="/events">
           <label htmlFor="q" className="sr-only">
@@ -243,7 +318,7 @@ export default async function EventsPage({ searchParams }: Props) {
 
         {showApi ? (
           <>
-            {filteredApi.length === 0 ? (
+            {rowSources.length === 0 ? (
               <p className="mt-10 text-white/50">No events match “{q}”.</p>
             ) : (
               <>

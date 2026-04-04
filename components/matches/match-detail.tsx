@@ -11,6 +11,8 @@ import type { TeamEventStats } from "@/lib/types";
 type Props = {
   eventCode: string;
   eventName?: string;
+  /** FTC / Event Web season year (preserve in links back to the event). */
+  seasonYear?: number;
   match: MatchResultModelV2;
   /** Optional team stats keyed by team number for MVP probability */
   statsByTeamNumber?: Map<number, TeamEventStats>;
@@ -36,9 +38,14 @@ function statsFromRanking(
 export function MatchDetail({
   eventCode,
   eventName,
+  seasonYear,
   match,
   statsByTeamNumber,
 }: Props) {
+  const eventBackHref =
+    seasonYear != null
+      ? `/events/${encodeURIComponent(eventCode)}?season=${encodeURIComponent(String(seasonYear))}#matches`
+      : `/events/${encodeURIComponent(eventCode)}#matches`;
   const { red, blue } = teamsToAlliances(match.teams);
   const redPair: [number, number] = [
     red[0] ?? 0,
@@ -103,10 +110,7 @@ export function MatchDetail({
     <PageShell>
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-10 md:py-14">
-        <Link
-          href={`/events/${encodeURIComponent(eventCode)}#matches`}
-          className="text-sm text-violet-300/80"
-        >
+        <Link href={eventBackHref} className="text-sm text-violet-300/80">
           ← Event matches
         </Link>
 
