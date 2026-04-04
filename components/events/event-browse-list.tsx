@@ -15,6 +15,8 @@ function statusPillClass(s: EventStatus): string {
 
 export type EventBrowseListRow = {
   rowKey: string;
+  /** FTC season year as in API / Scout (e.g. 2025 for 2025–26). */
+  seasonYear: number;
   code: string;
   name: string;
   dates: string;
@@ -35,9 +37,14 @@ function MobileEventCard({ r }: { r: EventBrowseListRow }) {
   return (
     <li className="px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-start justify-between gap-2 gap-y-1">
-        <span className="font-mono text-sm font-medium text-violet-300/90">
-          {r.code || "—"}
-        </span>
+        <div className="min-w-0">
+          <span className="font-mono text-sm font-medium text-violet-300/90">
+            {r.code || "—"}
+          </span>
+          <p className="mt-0.5 text-[11px] tabular-nums text-white/40">
+            Season {r.seasonYear}
+          </p>
+        </div>
         <span
           className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusPillClass(r.status)}`}
         >
@@ -107,10 +114,13 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
         ))}
       </ul>
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[780px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-white/[0.08] bg-white/[0.03] text-[11px] font-medium uppercase tracking-wider text-white/40">
               <th className="whitespace-nowrap px-4 py-3 pl-5">Code</th>
+              <th className="whitespace-nowrap px-3 py-3 text-center tabular-nums">
+                Season
+              </th>
               <th className="min-w-[200px] px-4 py-3">Event</th>
               <th className="whitespace-nowrap px-4 py-3">Dates</th>
               <th className="min-w-[160px] px-4 py-3">Where</th>
@@ -131,6 +141,9 @@ export function EventBrowseList({ rows }: { rows: EventBrowseListRow[] }) {
               >
                 <td className="whitespace-nowrap px-4 py-3.5 pl-5 align-top font-mono text-xs text-violet-300/80">
                   {r.code || "—"}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3.5 text-center align-top text-xs tabular-nums text-white/55">
+                  {r.seasonYear}
                 </td>
                 <td className="px-4 py-3.5 align-top">
                   <p className="font-medium leading-snug text-white/90">

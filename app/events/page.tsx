@@ -8,6 +8,7 @@ import {
   eventsToHubPreviewRows,
   sliceHubPreview,
 } from "@/components/events/events-category-hub";
+import { SeasonYearFilter } from "@/components/events/season-year-filter";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -53,6 +54,23 @@ const OFFICIAL_EVENTS_URL = "https://ftc-events.firstinspires.org/#allevents";
 const SCOUT_HUB = "https://ftcscout.org";
 
 const MAX_TEAM_PAIR_LOOKUPS = 100;
+
+function buildEventsListHref(parts: {
+  q?: string;
+  view?: string | null;
+  season?: number | null;
+}): string {
+  const p = new URLSearchParams();
+  if (parts.q) p.set("q", parts.q);
+  if (parts.view) p.set("view", parts.view);
+  if (parts.season != null) p.set("season", String(parts.season));
+  const s = p.toString();
+  return s ? `/events?${s}` : "/events";
+}
+
+function uniqueSeasonsDescending(rows: EventBrowseListRow[]): number[] {
+  return [...new Set(rows.map((r) => r.seasonYear))].sort((a, b) => b - a);
+}
 
 function filterMockEvents(q: string): Event[] {
   if (!q) return MOCK_EVENTS;
@@ -157,7 +175,11 @@ function compareScoutByStartDesc(a: ScoutEventListItem, b: ScoutEventListItem) {
 }
 
 type Props = {
-  searchParams: Promise<{ q?: string | string[]; view?: string | string[] }>;
+  searchParams: Promise<{
+    q?: string | string[];
+    view?: string | string[];
+    season?: string | string[];
+  }>;
 };
 
 type RowSource = {
@@ -182,6 +204,7 @@ function mapApiRowSourcesToBrowseRows(
     qs.set("season", String(seasonYear));
     return {
       rowKey: `${seasonYear}-${code || e.eventId || i}`,
+      seasonYear,
       code,
       name: (e.name ?? code).trim() || "Event",
       dates,
@@ -217,6 +240,7 @@ function mapScoutEventsToBrowseRows(items: ScoutEventListItem[]): EventBrowseLis
       }) ?? "TBA";
     return {
       rowKey: `${seasonY}-${code}-${i}`,
+      seasonYear: seasonY,
       code,
       name: (e.name ?? code).trim() || "Event",
       dates,
@@ -243,6 +267,7 @@ function mapMockEventsToBrowseRows(
     qs.set("season", String(defaultSeason));
     return {
       rowKey: e.id,
+      seasonYear: defaultSeason,
       code: e.code,
       name: e.name,
       dates: mockDateRangeDisplay(e),
@@ -269,6 +294,12 @@ export default async function EventsPage({ searchParams }: Props) {
     typeof rawView === "string" &&
     (rawView === "past" || rawView === "premier" || rawView === "worlds")
       ? rawView
+      : null;
+
+  const rawSeasonQ = sp.season;
+  const seasonQuery =
+    typeof rawSeasonQ === "string" && /^\d{4}$/.test(rawSeasonQ.trim())
+      ? Number.parseInt(rawSeasonQ.trim(), 10)
       : null;
 
   const apiOn = isFtcApiConfigured();
@@ -444,7 +475,7 @@ export default async function EventsPage({ searchParams }: Props) {
         ? mapScoutEventsToBrowseRows(worldsScoutFiltered)
         : mapMockEventsToBrowseRows(worldsMockFiltered, defaultSeason);
 
-  const activeBucketRows: EventBrowseListRow[] =
+  let activeBucketRows: EventBrowseListRow[] =
     view === "past"
       ? pastRows
       : view === "premier"
@@ -452,6 +483,18 @@ export default async function EventsPage({ searchParams }: Props) {
         : view === "worlds"
           ? worldsRows
           : [];
+
+  if (
+    (view === "past" || view === "worlds") &&
+    seasonQuery != null
+  ) {
+    activeBucketRows = activeBucketRows.filter(
+      (r) => r.seasonYear === seasonQuery
+    );
+  }
+
+  const pastSeasonsForFilter = uniqueSeasonsDescending(pastRows);
+  const worldsSeasonsForFilter = uniqueSeasonsDescending(worldsRows);
   const yearsLoaded = showApi
     ? [...new Set(succeededChunks.map((c) => c.season))].sort((a, b) => b - a)
     : [];
@@ -616,6 +659,9 @@ export default async function EventsPage({ searchParams }: Props) {
           {view ? (
             <input type="hidden" name="view" value={view} />
           ) : null}
+          {(view === "past" || view === "worlds") && seasonQuery != null ? (
+            <input type="hidden" name="season" value={String(seasonQuery)} />
+          ) : null}
           <label htmlFor="q" className="sr-only">
             Search events
           </label>
@@ -642,7 +688,11 @@ export default async function EventsPage({ searchParams }: Props) {
           <p className="mt-6 text-white/50">
             No events match “{q}”.{" "}
             <Link
-              href={view ? `/events?view=${view}` : "/events"}
+              href={buildEventsListHref({
+                view,
+                season:
+                  view === "past" || view === "worlds" ? seasonQuery : null,
+              })}
               className="text-violet-300 underline hover:text-violet-200"
             >
               Clear search
@@ -653,7 +703,11 @@ export default async function EventsPage({ searchParams }: Props) {
           <p className="mt-6 text-white/50">
             No events match “{q}”.{" "}
             <Link
-              href={view ? `/events?view=${view}` : "/events"}
+              href={buildEventsListHref({
+                view,
+                season:
+                  view === "past" || view === "worlds" ? seasonQuery : null,
+              })}
               className="text-violet-300 underline hover:text-violet-200"
             >
               Clear search
@@ -667,7 +721,13 @@ export default async function EventsPage({ searchParams }: Props) {
               <>
                 {" "}
                 <Link
-                  href={view ? `/events?view=${view}` : "/events"}
+                  href={buildEventsListHref({
+                    view,
+                    season:
+                      view === "past" || view === "worlds"
+                        ? seasonQuery
+                        : null,
+                  })}
                   className="text-violet-300 underline hover:text-violet-200"
                 >
                   Clear search
@@ -707,25 +767,58 @@ export default async function EventsPage({ searchParams }: Props) {
                   ? " · upcoming premier"
                   : " · world championship"}
               {q ? ` · filtered by “${q}”` : ""}
+              {(view === "past" || view === "worlds") && seasonQuery != null
+                ? ` · season ${seasonQuery}`
+                : ""}
               {listSource === "first"
                 ? " · FIRST API"
                 : listSource === "scout"
                   ? " · FTC Scout"
                   : " · demo"}
             </p>
+            {view === "past" && pastSeasonsForFilter.length > 0 ? (
+              <SeasonYearFilter
+                view="past"
+                yearsDescending={pastSeasonsForFilter}
+                selectedYear={seasonQuery}
+                q={q}
+              />
+            ) : null}
+            {view === "worlds" && worldsSeasonsForFilter.length > 0 ? (
+              <SeasonYearFilter
+                view="worlds"
+                yearsDescending={worldsSeasonsForFilter}
+                selectedYear={seasonQuery}
+                q={q}
+              />
+            ) : null}
             {activeBucketRows.length > 0 ? (
               <EventBrowseList rows={activeBucketRows} />
             ) : (
-              <p className="mt-6 text-white/45">
-                Nothing in this category with the current filter. Try another
-                column or{" "}
+              <p className="mt-6 leading-relaxed text-white/45">
+                No events match these filters.
+                {(view === "past" || view === "worlds") && seasonQuery != null ? (
+                  <>
+                    {" "}
+                    <Link
+                      href={buildEventsListHref({ q, view, season: null })}
+                      className="text-violet-300 underline hover:text-violet-200"
+                    >
+                      Show all seasons
+                    </Link>
+                    {" · "}
+                  </>
+                ) : null}
                 <Link
-                  href={q ? `/events?q=${encodeURIComponent(q)}` : "/events"}
+                  href={buildEventsListHref({
+                    view,
+                    season:
+                      view === "past" || view === "worlds" ? seasonQuery : null,
+                  })}
                   className="text-violet-300 underline hover:text-violet-200"
                 >
-                  clear the search
+                  Clear search
                 </Link>
-                .
               </p>
             )}
           </section>
