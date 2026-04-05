@@ -7,7 +7,7 @@ import {
   alliancesQueryTouched,
   defaultAllianceFieldValues,
   parseAlliancesFromQuery,
-  swapAlliancesQueryString,
+  swapSecondPartnersQueryString,
   type AllianceQuery,
 } from "@/lib/predictions/alliance-params";
 import { getEffectiveScoutSeason } from "@/lib/ftc-scout/queries";
@@ -39,7 +39,7 @@ export async function OverallPredictorPanel({
 
   const swapHref =
     red && blue
-      ? `${routeBase}?${swapAlliancesQueryString(red, blue)}`
+      ? `${routeBase}?${swapSecondPartnersQueryString(red, blue)}`
       : routeBase;
 
   const shellPad = embedInPage
@@ -181,7 +181,7 @@ export async function OverallPredictorPanel({
             href={swapHref}
             className="flex min-h-[48px] touch-manipulation select-none items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 transition active:bg-white/[0.08] sm:min-h-12 sm:min-w-0"
           >
-            Swap sides
+            Cross 2nd partners
           </Link>
           <Link
             href={routeBase}

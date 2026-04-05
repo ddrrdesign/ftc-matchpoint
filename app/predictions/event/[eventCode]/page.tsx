@@ -30,9 +30,10 @@ import {
   alliancesQueryTouched,
   defaultAllianceFieldValues,
   parseAlliancesFromQuery,
-  swapAlliancesQueryString,
+  swapSecondPartnersQueryString,
   type AllianceQuery,
 } from "@/lib/predictions/alliance-params";
+import { AllianceScoutDeepDive } from "@/components/predictions/alliance-scout-deep-dive";
 
 /** Align with match/ranking cache; page still feels fresh for live events. */
 export const revalidate = 120;
@@ -200,7 +201,7 @@ export default async function EventPredictionPage({
       ? (() => {
           const p = new URLSearchParams(seasonQs);
           for (const [k, v] of new URLSearchParams(
-            swapAlliancesQueryString(red, blue)
+            swapSecondPartnersQueryString(red, blue)
           )) {
             p.set(k, v);
           }
@@ -467,7 +468,7 @@ export default async function EventPredictionPage({
               href={swapHref}
               className="flex min-h-[48px] touch-manipulation items-center justify-center rounded-xl border border-white/10 px-4 text-sm text-white/70 hover:bg-white/[0.06] sm:min-h-12"
             >
-              Swap sides
+              Cross 2nd partners
             </Link>
             <Link
               href={resetHref}
@@ -527,8 +528,8 @@ export default async function EventPredictionPage({
                 on average (alliance appearances).
               </p>
               <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs leading-relaxed text-white/40">
-                This read uses only FIRST data for this event (rankings + match results).
-                For a separate season-wide Scout composite with the same four teams, open{" "}
+                FIRST-only model for this event (rankings + match results). The Scout block
+                below uses the same composite breakdown as{" "}
                 <Link
                   href={overallScoutHref}
                   className="text-violet-400/90 underline hover:text-violet-300"
@@ -538,6 +539,18 @@ export default async function EventPredictionPage({
                 .
               </p>
             </GlassCard>
+            <AllianceScoutDeepDive
+              red={[red[0]!, red[1]!]}
+              blue={[blue[0]!, blue[1]!]}
+              scoutSeason={season}
+              predictorEventCode={eventCode}
+              className="mt-8 sm:mt-10"
+              sectionLabel={
+                <p className="text-xs uppercase tracking-[0.22em] text-violet-300/55">
+                  FTC Scout · same read as Overall
+                </p>
+              }
+            />
           </section>
         ) : null}
 

@@ -21,7 +21,12 @@ import {
   alliancesQueryTouched,
   type AllianceQuery,
 } from "@/lib/predictions/alliance-params";
-import { PredictionsOverallDetails } from "@/components/predictions/predictions-overall-details";
+import {
+  PredictionsAccordionProvider,
+  PredictionsAccordionSection,
+  PredictionsEventFirstHitScroll,
+} from "@/components/predictions/predictions-accordion";
+import { PredictionsEventSearchForm } from "@/components/predictions/predictions-event-search-form";
 import {
   FirstApiSetupGuide,
   FirstApiSetupPointer,
@@ -89,10 +94,7 @@ export default async function PredictionsPage({
     alliancesQueryComplete(sp as AllianceQuery);
 
   const catalogSeasons = getFtcSeasonYearsForPredictionsCatalog();
-  const ftcScoutEventsYear =
-    catalogSeasons.length > 0
-      ? Math.min(...catalogSeasons)
-      : new Date().getFullYear();
+  const ftcScoutEventsYear = getFtcSeasonYear();
   const ftcScoutEventsUrl = `${FTC_SCOUT}/events/${ftcScoutEventsYear}`;
 
   const allSeasonEvents = apiOn ? await fetchPredictionsSeasonEvents() : [];
@@ -106,6 +108,16 @@ export default async function PredictionsPage({
     sp.r,
     sp.b,
   ].join("|");
+
+  const eventQueryTrimmed = eventQuery.trim();
+  const initialAccordionPanel =
+    eventQueryTrimmed.length > 0
+      ? ("event" as const)
+      : overallDetailsOpen
+        ? ("overall" as const)
+        : null;
+  const accordionResetKey = `${overallQueryKey}|q:${eventQuery}|hit:${eventRows[0]?.code ?? ""}`;
+  const eventFirstHitId = "predictions-event-first-hit";
 
   return (
     <PageShell>
@@ -188,12 +200,22 @@ export default async function PredictionsPage({
           </div>
         ) : null}
 
-        <div className={`space-y-4 ${!apiOn ? "mt-6 sm:mt-8" : "mt-10 sm:mt-12"}`}>
-          <PredictionsOverallDetails
-            defaultOpen={overallDetailsOpen}
-            scrollToAnalysisOnOpen={alliancesQueryComplete(sp as AllianceQuery)}
-            queryKey={overallQueryKey}
+        <PredictionsAccordionProvider
+          resetKey={accordionResetKey}
+          initialOpen={initialAccordionPanel}
+        >
+          <div
+            className={`space-y-4 ${!apiOn ? "mt-6 sm:mt-8" : "mt-10 sm:mt-12"}`}
           >
+            <PredictionsAccordionSection
+              panel="overall"
+              scrollToIdOnOpen={
+                alliancesQueryComplete(sp as AllianceQuery)
+                  ? "overall-analysis"
+                  : null
+              }
+              className="group scroll-mt-24 rounded-2xl border border-white/[0.1] bg-white/[0.03] open:border-violet-400/30 open:bg-white/[0.045]"
+            >
             <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 touch-manipulation sm:p-6 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0 text-left">
                 <p className="text-xs font-medium uppercase tracking-[0.22em] text-violet-300/55">
@@ -221,12 +243,12 @@ export default async function PredictionsPage({
                 embedInPage
               />
             </div>
-          </PredictionsOverallDetails>
+            </PredictionsAccordionSection>
 
-          <details
-            id="event-analysis"
-            className="group scroll-mt-24 rounded-2xl border border-white/[0.1] bg-white/[0.03] open:border-violet-400/30 open:bg-white/[0.045]"
-          >
+            <PredictionsAccordionSection
+              panel="event"
+              className="group scroll-mt-24 rounded-2xl border border-white/[0.1] bg-white/[0.03] open:border-violet-400/30 open:bg-white/[0.045]"
+            >
             <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 touch-manipulation sm:p-6 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0 text-left">
                 <p className="text-xs font-medium uppercase tracking-[0.22em] text-violet-300/55">
@@ -315,11 +337,7 @@ export default async function PredictionsPage({
                     </a>
                     .
                   </p>
-                  <form
-                    action="/predictions"
-                    method="get"
-                    className="flex min-w-0 max-w-2xl flex-col gap-3 sm:flex-row sm:items-center"
-                  >
+                  <PredictionsEventSearchForm className="flex min-w-0 max-w-2xl flex-col gap-3 sm:flex-row sm:items-center">
                     {hiddenOverallFields(sp)}
                     <label className="min-w-0 flex-1">
                       <span className="sr-only">Search events</span>
@@ -348,18 +366,27 @@ export default async function PredictionsPage({
                         </Link>
                       ) : null}
                     </div>
-                  </form>
+                  </PredictionsEventSearchForm>
                   <p className="mt-3 text-xs text-white/38">
                     Showing {eventRows.length.toLocaleString("en-US")} of{" "}
                     {allSeasonEvents.length.toLocaleString("en-US")} events
                     {eventQuery ? ` · query “${eventQuery}”` : ""}
                   </p>
+                  <PredictionsEventFirstHitScroll
+                    enabled={eventQueryTrimmed.length > 0 && eventRows.length > 0}
+                    targetId={eventFirstHitId}
+                  />
                   <ul className="mt-6 grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-                    {eventRows.map((ev) => {
+                    {eventRows.map((ev, index) => {
                       const href = `/predictions/event/${encodeURIComponent(ev.code)}?season=${ev.season}`;
                       return (
                         <li
                           key={`${ev.season}-${ev.code}`}
+                          id={
+                            index === 0 && eventQueryTrimmed.length > 0
+                              ? eventFirstHitId
+                              : undefined
+                          }
                           className="perf-list-row min-w-0"
                         >
                           <Link
@@ -395,8 +422,9 @@ export default async function PredictionsPage({
                 </>
               )}
             </div>
-          </details>
-        </div>
+            </PredictionsAccordionSection>
+          </div>
+        </PredictionsAccordionProvider>
       </main>
     </PageShell>
   );

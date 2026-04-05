@@ -88,14 +88,18 @@ export function alliancesQueryComplete(q: AllianceQuery): boolean {
   return red != null && blue != null;
 }
 
-export function swapAlliancesQueryString(
+/**
+ * Swap only the second robot in each alliance: [A,B] vs [C,D] → [A,D] vs [C,B].
+ * First slots (r1, b1) stay put.
+ */
+export function swapSecondPartnersQueryString(
   red: [number, number],
   blue: [number, number]
 ): string {
   const p = new URLSearchParams({
-    r1: String(blue[0]),
+    r1: String(red[0]),
     r2: String(blue[1]),
-    b1: String(red[0]),
+    b1: String(blue[0]),
     b2: String(red[1]),
   });
   return p.toString();
