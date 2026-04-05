@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AllianceScoutDeepDive } from "@/components/predictions/alliance-scout-deep-dive";
 import { connection } from "next/server";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/layout/page-shell";
@@ -208,6 +207,11 @@ export default async function EventPredictionPage({
           return `${formAction}?${p.toString()}`;
         })()
       : resetHref;
+
+  const overallScoutHref =
+    red && blue
+      ? `/predictions?r1=${red[0]}&r2=${red[1]}&b1=${blue[0]}&b2=${blue[1]}#overall`
+      : "/predictions#overall";
 
   return (
     <PageShell>
@@ -483,11 +487,11 @@ export default async function EventPredictionPage({
         {prediction && red && blue ? (
           <section
             id="event-prediction-results"
-            className="scroll-mt-24 space-y-10 sm:space-y-12"
+            className="scroll-mt-24"
           >
             <GlassCard glow="violet" className="mt-8 max-w-2xl min-w-0 p-4 sm:mt-10 sm:p-6 md:p-8">
               <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                FIRST API model
+                Event prediction
               </p>
               <p className="mt-2 text-xl font-medium text-white/90">
                 {prediction.favored === "red" ? "Red" : "Blue"} favored
@@ -522,23 +526,18 @@ export default async function EventPredictionPage({
                 scored matches · ~{prediction.avgTeamMatches.toFixed(1)} matches per team
                 on average (alliance appearances).
               </p>
+              <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs leading-relaxed text-white/40">
+                This read uses only FIRST data for this event (rankings + match results).
+                For a separate season-wide Scout composite with the same four teams, open{" "}
+                <Link
+                  href={overallScoutHref}
+                  className="text-violet-400/90 underline hover:text-violet-300"
+                >
+                  Overall analysis
+                </Link>
+                .
+              </p>
             </GlassCard>
-
-            <AllianceScoutDeepDive
-              red={[red[0]!, red[1]!]}
-              blue={[blue[0]!, blue[1]!]}
-              scoutSeason={season}
-              predictorEventCode={eventCode}
-              sectionLabel={
-                <p>
-                  <span className="font-medium text-white/70">
-                    Scout cross-check (same breakdown as Overall analysis)
-                  </span>
-                  : Total NP sums, phase edges, scouting read, and per-team cards from
-                  FTC Scout — independent of the FIRST API matchup model above.
-                </p>
-              }
-            />
           </section>
         ) : null}
 
