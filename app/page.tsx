@@ -119,6 +119,19 @@ export default function Home() {
               from the nav.
             </p>
           </GlassCard>
+
+          <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-white/45">
+            Questions or ran into an issue? Reach out on Instagram:{" "}
+            <a
+              href="https://www.instagram.com/there-first.jeltoqsun/"
+              className="font-medium text-violet-300/90 underline decoration-violet-400/40 underline-offset-2 hover:text-violet-200"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              @there-first.jeltoqsun
+            </a>
+            .
+          </p>
         </section>
       </main>
     </PageShell>

@@ -1,5 +1,5 @@
 /**
- * Strip near-black background, center on square canvas, export 512×512 PNG.
+ * Strip near-black background, center on square canvas, opaque black pad, 512×512 PNG.
  *
  *   node scripts/process-favicon.mjs                 # reads app/icon.png
  *   node scripts/process-favicon.mjs path/to/source
@@ -60,13 +60,14 @@ async function main() {
       bottom: Math.ceil(extH / 2),
       left: Math.floor(extW / 2),
       right: Math.ceil(extW / 2),
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      background: { r: 0, g: 0, b: 0, alpha: 255 },
     })
     .png()
     .toBuffer();
 
   const square = await sharp(extendedPng)
     .resize(512, 512, { fit: "fill" })
+    .flatten({ background: { r: 0, g: 0, b: 0 } })
     .png()
     .toBuffer();
 
