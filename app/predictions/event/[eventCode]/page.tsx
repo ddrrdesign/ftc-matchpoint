@@ -490,11 +490,34 @@ export default async function EventPredictionPage({
             id="event-prediction-results"
             className="scroll-mt-24"
           >
-            <GlassCard glow="violet" className="mt-8 max-w-2xl min-w-0 p-4 sm:mt-10 sm:p-6 md:p-8">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                Event prediction
+            <AllianceScoutDeepDive
+              red={[red[0]!, red[1]!]}
+              blue={[blue[0]!, blue[1]!]}
+              scoutSeason={season}
+              predictorEventCode={eventCode}
+              className="mt-8 sm:mt-10"
+              sectionLabel={
+                <p className="text-xs uppercase tracking-[0.22em] text-violet-300/55">
+                  FTC Scout · same read as Overall
+                </p>
+              }
+            />
+            <GlassCard
+              glow="none"
+              className="mt-8 max-w-2xl min-w-0 border-white/[0.08] bg-white/[0.02] p-4 sm:mt-10 sm:p-6 md:p-8"
+            >
+              <p className="text-xs uppercase tracking-[0.2em] text-white/40">
+                FIRST API · this event only
               </p>
-              <p className="mt-2 text-xl font-medium text-white/90">
+              <p className="mt-2 text-lg font-medium text-white/85">
+                Event-scoped prediction
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-white/45">
+                Uses rankings and match scores from this competition only. Early in the
+                event there are few matches, so this layer often sits near 50/50 until
+                data builds up — the Scout read above is usually more informative then.
+              </p>
+              <p className="mt-4 text-xl font-medium text-white/90">
                 {prediction.favored === "red" ? "Red" : "Blue"} favored
               </p>
               <p className="mt-1 text-sm text-white/45">
@@ -528,8 +551,7 @@ export default async function EventPredictionPage({
                 on average (alliance appearances).
               </p>
               <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs leading-relaxed text-white/40">
-                FIRST-only model for this event (rankings + match results). The Scout block
-                below uses the same composite breakdown as{" "}
+                Same four teams in a season-wide view:{" "}
                 <Link
                   href={overallScoutHref}
                   className="text-violet-400/90 underline hover:text-violet-300"
@@ -539,18 +561,6 @@ export default async function EventPredictionPage({
                 .
               </p>
             </GlassCard>
-            <AllianceScoutDeepDive
-              red={[red[0]!, red[1]!]}
-              blue={[blue[0]!, blue[1]!]}
-              scoutSeason={season}
-              predictorEventCode={eventCode}
-              className="mt-8 sm:mt-10"
-              sectionLabel={
-                <p className="text-xs uppercase tracking-[0.22em] text-violet-300/55">
-                  FTC Scout · same read as Overall
-                </p>
-              }
-            />
           </section>
         ) : null}
 
